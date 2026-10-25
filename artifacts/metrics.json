@@ -184,6 +184,9 @@
       0.99829
     ]
   },
+  "test_size": 14841,
+  "positive_rate": 0.1179,
+  "majority_baseline_accuracy": 0.8821,
   "history": [
     {
       "epoch": 1,
@@ -296,8 +299,5 @@
       "val_roc_auc": 0.6735
     }
   ],
-  "best_val_roc_auc": 0.6751,
-  "test_size": 14841,
-  "positive_rate": 0.1179,
-  "majority_baseline_accuracy": 0.8821
+  "best_val_roc_auc": 0.6751
 }

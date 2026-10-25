@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=31c03e69">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=557e6dbe">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7833,10 +7833,11 @@ held-out evaluation → SHAP explainability.</strong></p>
 </tr>
 </tbody>
 </table>
-<p><strong>How to read this notebook.</strong> Markdown cells state <em>why</em> a step exists and what
-could go wrong; code cells perform the step and show the real output. Nothing
-below is hand-written — every metric, chart and table is produced by running
-this file top-to-bottom on a CPU in about a minute.</p>
+<p><strong>How to read this notebook.</strong> Each step is followed by a markdown block titled
+<em>"What the output shows"</em> — so the section before a cell explains <em>why</em> the step
+exists, and the section after it interprets the numbers you just saw. Nothing
+below is hand-written: every metric, chart and table is produced by running this
+file top-to-bottom on a CPU in under two minutes.</p>
 <blockquote>
 <p><strong>Honesty rule for this project:</strong> numbers are only reported if they are
 measured. The test set is touched exactly once, after the threshold has been
@@ -7846,7 +7847,7 @@ chosen on validation data.</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8eb8d228">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=64305b76">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7857,7 +7858,7 @@ scikit-learn, pandas, NumPy and SHAP — no TensorFlow, no XGBoost, CPU only.</p
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=78aae526">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=62a63f87">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7925,7 +7926,7 @@ artefacts -&gt; C:\Users\pravi\Documents\Default Project\hospital-readmission\ar
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c416c7e1">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6454af78">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7938,7 +7939,7 @@ skipped class, and identifiers that must never become features.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=392665c3">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6d54dc16">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8265,7 +8266,21 @@ skipped class, and identifiers that must never become features.</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b914735f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=298e72a3">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> 101,766 rows × 50 columns, and the three-way target
+breaks down as <code>NO</code> 54,864 · <code>&gt;30</code> 35,545 · <code>&lt;30</code> <strong>11,357</strong> — the class the
+clinical question is actually about is the smallest one, at 11.2%. That single
+fact drives the class weighting in §6 and the threshold sweep in §8, and it is
+why raw accuracy will be the wrong metric to quote in §9.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b3fd4a2f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8314,7 +8329,7 @@ and any future consumer agree on levels.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cdda0f50">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a978010a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8446,7 +8461,24 @@ primary diagnosis (ICD-9 chapter) distribution:
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=31899c7d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=14f7c924">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> 99,343 of the 101,766 encounters survive — the
+2,423 removed are exactly the non-readmittable discharges — covering <strong>69,990
+distinct patients</strong>, about 1.4 admissions each. That repetition is the reason
+§4 splits by patient rather than by row. The positive rate settles at 11.39%.</p>
+<p>Primary diagnosis is dominated by circulatory conditions (29,681 encounters),
+then <em>other</em> (17,813), respiratory (13,934) and digestive (9,333): the chapter
+grouping kept those four clinically meaningful blocks intact instead of
+scattering them across 600+ near-empty ICD codes.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0d5ced93">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8465,7 +8497,7 @@ test (<strong>70 / 15 / 15</strong>). The assertion below proves the intersectio
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5422db91">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e3b05677">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8562,7 +8594,22 @@ test (<strong>70 / 15 / 15</strong>). The assertion below proves the intersectio
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=42ad4f75">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c886b890">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> 69,554 / 14,948 / 14,841 encounters drawn from
+48,993 / 10,498 / 10,499 patients — and <code>0 overlaps</code> is the assertion <em>passing</em>,
+not a number written into a caption. The positive rate is close across all three
+partitions (0.113 / 0.116 / 0.118), so the test set is neither easier nor
+harder than training: any difference in the metrics below comes from the model,
+not from the sample it was scored on.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fd106817">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8582,7 +8629,7 @@ consumer transform inputs with the <em>same</em> object.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6d254ca9">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f41c065b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8695,12 +8742,28 @@ first 10 inputs: time_in_hospital, num_lab_procedures, num_procedures, num_medic
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=43a30524">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5ab7eeef">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="6.-Model-%E2%80%94-a-small-fully-connected-ANN">6. Model — a small fully connected ANN<a class="anchor-link" href="#6.-Model-%E2%80%94-a-small-fully-connected-ANN">¶</a></h2><p><code>118 inputs → 64 → 32 → 1 logit</code>, ReLU activations, dropout 0.3 between
+<p><strong>What the output shows.</strong> 120 model inputs are generated from 47 source
+columns — the one-hot expansion of the categoricals plus the 8 standardised
+numerics — and the summary table confirms the scaling worked: mean ≈ 0 and
+std = 1 for every numeric column. That standardisation is what lets an ANN's
+gradient descent converge in a few dozen epochs instead of thousands. The
+"first 10 inputs" line also shows names the model will later be explained with
+in §10.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c0f825bf">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="6.-Model-%E2%80%94-a-small-fully-connected-ANN">6. Model — a small fully connected ANN<a class="anchor-link" href="#6.-Model-%E2%80%94-a-small-fully-connected-ANN">¶</a></h2><p><code>120 inputs → 64 → 32 → 1 logit</code>, ReLU activations, dropout 0.3 between
 layers. Design notes:</p>
 <ul>
 <li>the output is a <strong>raw logit</strong>, paired with <code>BCEWithLogitsLoss</code>, which is
@@ -8712,7 +8775,7 @@ without resorting to oversampling;</li>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=98a985fc">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ad423a22">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8754,7 +8817,21 @@ ReadmissionMLP(
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=24bd7c51">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=738727c9">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> 9,857 parameters across
+<code>Linear(120, 64) → Linear(64, 32) → Linear(32, 1)</code>. That is far fewer free
+parameters than the training set has rows (69,554), so capacity is not the
+constraint — the ceiling hit in §7 comes from how much discharge-time
+information actually exists, not from an undersized network.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b4783ca3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8768,7 +8845,7 @@ features alone, and the honest ceiling is somewhere near AUC 0.68.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9e05e2bf">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a78a3be6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8933,7 +9010,7 @@ features alone, and the honest ceiling is somewhere near AUC 0.68.</p>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO    train - trained 22 epochs in 40.1s on cpu
+<pre>INFO    train - trained 22 epochs in 33.0s on cpu
 </pre>
 </div>
 </div>
@@ -8941,7 +9018,7 @@ features alone, and the honest ceiling is somewhere near AUC 0.68.</p>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>x_train (69554, 120) -&gt; first layer (64, 120)
 
-22 epochs in 44.1s (best val ROC-AUC 0.6751)
+22 epochs in 37.0s (best val ROC-AUC 0.6751)
 </pre>
 </div>
 </div>
@@ -9002,7 +9079,7 @@ features alone, and the honest ceiling is somewhere near AUC 0.68.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e730c5d8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=695930f2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9037,7 +9114,22 @@ features alone, and the honest ceiling is somewhere near AUC 0.68.</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=daafd2a1">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d36b0a41">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> Training stopped at epoch 22 after 6 epochs without
+a new best validation AUC (best <strong>0.6751</strong>; those weights are the ones restored).
+Read the two charts together: the loss keeps falling while validation AUC
+flattens around 0.67 — the network is still fitting noise rather than signal.
+That divergence, not the epoch budget, is what limits this model, and it is the
+first thing to say if asked "why not train longer?".</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3c8b4f9a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9049,7 +9141,7 @@ once. Selecting it on test data would be leakage.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=45a204d6">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5f2c0ece">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9096,7 +9188,22 @@ naive 0.50 would give validation F1 0.2796
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a5562101">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5a3911cd">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> The chosen cut-off is the peak of the F1 curve
+(printed above) and sits slightly above the 0.50 default — a marginally stricter
+rule that trades a little recall for precision. The curve is broad rather than
+spiky, so F1 does not hinge on a knife-edge choice; worth establishing before
+quoting the single number in §9. The value chosen here is the <em>only</em> threshold
+ever used on the test set.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8f0769ea">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9112,7 +9219,7 @@ would look excellent and mean nothing here.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b76d58b7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=30c94f18">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9224,7 +9331,7 @@ would look excellent and mean nothing here.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6bd4f918">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=3f2b6ee7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9281,7 +9388,48 @@ would look excellent and mean nothing here.</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=777eaecb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1f01db98">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows — read the table this way:</strong></p>
+<table>
+<thead>
+<tr>
+<th>number</th>
+<th>how to read it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ROC-AUC 0.6754</strong></td>
+<td>real ranking signal (0.5 = random), but nowhere near separation (1.0) — a triage score, not a verdict</td>
+</tr>
+<tr>
+<td><strong>PR-AUC 0.2319 vs 0.1179 baseline</strong></td>
+<td>about twice what random guessing achieves at this prevalence — the honest headline for an imbalanced target</td>
+</tr>
+<tr>
+<td><strong>accuracy 0.7426 &lt; 0.8821 majority baseline</strong></td>
+<td>expected and correct: the model trades accuracy for recall rather than predicting "no readmission" for everyone</td>
+</tr>
+<tr>
+<td><strong>confusion matrix</strong></td>
+<td>766 of 1,750 actual readmissions caught (recall 0.4377) at a cost of 2,836 false alarms; precision 0.2127 ≈ 1 in 5 flagged patients is a real readmission</td>
+</tr>
+</tbody>
+</table>
+<p>The ROC curve bows gently above the diagonal and the PR curve stays above its
+dotted baseline — the visual version of exactly those four rows. If one sentence
+is needed: <em>the model finds roughly 44% of the patients who will be readmitted,
+and about a fifth of those it flags are correct — useful for prioritising a
+follow-up list, nowhere near sufficient to act on alone.</em></p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=686174b1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9299,7 +9447,7 @@ patient's logit minus the baseline logit.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9ea1c934">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5c38219f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9436,7 +9584,7 @@ patient's logit minus the baseline logit.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c647a397">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b3fccc2f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9467,7 +9615,59 @@ patient's logit minus the baseline logit.</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b1773024">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a9a2299d">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> The ranking is clinically sensible — and one entry
+is worth calling out as a <em>weakness</em> rather than a finding:</p>
+<table>
+<thead>
+<tr>
+<th>rank</th>
+<th>feature</th>
+<th>mean |SHAP|</th>
+<th>reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>number_inpatient</code></td>
+<td>0.269</td>
+<td>prior inpatient admissions — the strongest known predictor of readmission in this literature</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>discharge_disposition_id_1</code></td>
+<td>0.180</td>
+<td>discharged to home — a severity proxy: this patient differs from one sent to a nursing facility</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>number_diagnoses</code></td>
+<td>0.125</td>
+<td>diagnostic burden recorded at discharge</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>discharge_disposition_id_25</code></td>
+<td>0.111</td>
+<td>"Not Mapped" — a <strong>data-quality artifact</strong>, not clinical signal; it survives because the level is common</td>
+</tr>
+</tbody>
+</table>
+<p>The bar chart shows the same order, with the top three well clear of the rest:
+the model's decisions concentrate in a handful of features rather than spreading
+thinly across all 120 — which is what makes a per-patient explanation readable
+in §11. The presence of rank 4 is the honest caveat: some of what the model has
+learned is about how the source database was coded, not about patients.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d85a1491">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9480,7 +9680,7 @@ equal the model output. That is the guarantee being demonstrated, not claimed.</
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d57cab51">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2fac4fc0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9537,7 +9737,7 @@ predicted probability of readmission: 0.961  (baseline logit -0.170)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fa1c0ce5">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=54043665">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9656,7 +9856,31 @@ predicted probability of readmission: 0.961  (baseline logit -0.170)
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f5436d80">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9fba8170">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> Baseline log-odds <strong>−0.170</strong> → model log-odds
+<strong>3.2050</strong> → probability <strong>0.961</strong>, and the additivity assertion passed, so the
+waterfall is provably complete: no contribution is missing or double-counted.</p>
+<p>The dominant mover is <code>number_inpatient</code> at <strong>+2.52 log-odds</strong>, which on its own
+multiplies this patient's odds of readmission by roughly <strong>×12</strong>
+(<code>exp(2.52)</code>). Two things a reviewer usually picks up on:</p>
+<ul>
+<li><code>time_in_hospital</code> <em>lowers</em> the score for this patient — SHAP is reporting
+the association the model learned, not a medical claim that longer stays are
+protective;</li>
+<li>contributions are <strong>log-odds</strong>, so they only add in log-odds space; the 0.961
+probability is a sigmoid applied exactly once, at the end.</li>
+</ul>
+<p>The table underneath is the same explanation as numbers — useful when a chart is
+being read out loud in a review.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a7d4176a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9667,7 +9891,7 @@ two views of one pipeline rather than two implementations.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d50c20f7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9e41f6bf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9769,7 +9993,29 @@ state dict shapes: {'network.0.weight': (64, 120), 'network.0.bias': (64,), 'net
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7a872557">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=521eb37a">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>What the output shows.</strong> Eight files, ≈119 KB in total:</p>
+<ul>
+<li><code>model.pt</code> — 41.2 KB of weights; the round-trip check confirms the saved
+checkpoint reloads with <strong>9,857 parameters</strong>, identical to the live model
+(no stray SHAP tensors riding along in the file);</li>
+<li><code>preprocessor.joblib</code> — the fitted feature pipeline, the single source of
+preprocessing truth;</li>
+<li><code>background.pt</code> — the 128-row SHAP background;</li>
+<li>five JSON files carrying every metric, curve, feature name and cohort
+statistic shown above, so a consumer never has to retrain to report a number.</li>
+</ul>
+<p>Total ≈119 KB — small enough to commit, so results stay inspectable without a
+training run.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a9fb7788">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
