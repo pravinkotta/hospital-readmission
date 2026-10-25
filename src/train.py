@@ -288,10 +288,13 @@ def main() -> int:
     val_prob = predict(model, x_val)
     threshold = best_threshold(y_val, val_prob)
     metrics = evaluate(y_test, predict(model, x_test), threshold)
-    metrics.update(training)
+    # Context keys are added here — before the training block — so the JSON key
+    # order matches what the notebook writes; otherwise every run flips the file
+    # for no reason and pollutes version control.
     metrics["test_size"] = int(len(test))
     metrics["positive_rate"] = round(float(y_test.mean()), 4)
     metrics["majority_baseline_accuracy"] = round(float(max(y_test.mean(), 1 - y_test.mean())), 4)
+    metrics.update(training)
     logger.info(
         "test ROC-AUC %.4f | PR-AUC %.4f | F1 %.4f @ %.2f",
         metrics["roc_auc"], metrics["pr_auc"], metrics["f1"], threshold,
