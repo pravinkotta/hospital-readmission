@@ -4,8 +4,10 @@ Predicting **30-day readmission** for diabetic inpatients with a PyTorch
 artificial neural network, explained feature-by-feature with **SHAP** — built as
 a case study against an explicit [Role / Context / Task / Constraints spec](RCTC.md).
 
-> **Read the results in one page:** [Hospital_Readmission_ANN_SHAP.html](Hospital_Readmission_ANN_SHAP.html)
-> (a rendered copy of the notebook — no Jupyter needed) ·
+> **Read the results interactively:** [Hospital_Readmission_ANN_SHAP.html](Hospital_Readmission_ANN_SHAP.html)
+> — a self-contained dashboard (drag the decision threshold, switch patients,
+> hover any chart). No server, no CDN, works offline.
+> Linear alternative: [notebook as HTML](notebooks/hospital_readmission_ann_shap_output.html) ·
 > source: [notebooks/hospital_readmission_ann_shap.ipynb](notebooks/hospital_readmission_ann_shap.ipynb)
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-blue)
@@ -123,12 +125,15 @@ So SHAP values in this project are in **log-odds, not probability**.
 ```
 ├── RCTC.md                              Role / Context / Task / Constraints spec
 ├── README.md                            this file
-├── Hospital_Readmission_ANN_SHAP.html   rendered notebook (open in any browser)
+├── Hospital_Readmission_ANN_SHAP.html   interactive report (open in any browser)
 ├── requirements.txt
 ├── notebooks/
-│   └── hospital_readmission_ann_shap.ipynb   the full case study, executed
+│   ├── hospital_readmission_ann_shap.ipynb   the full case study, executed
+│   └── hospital_readmission_ann_shap_output.html  notebook rendered linearly
 ├── scripts/
-│   └── download_data.py                 fetches the UCI dataset
+│   ├── download_data.py                 fetches the UCI dataset
+│   ├── build_report.py                  rebuilds the interactive report
+│   └── report_template.html             its HTML/CSS/JS template (no CDN)
 ├── src/
 │   ├── config.py        columns, ICD bands, hyperparameters, risk bands
 │   ├── data.py          load, clean, ICD-9 chapter grouping
@@ -149,15 +154,21 @@ pip install -r requirements.txt
 
 python scripts/download_data.py   # ~3 MB download, extracts to data/
 python -m src.train               # trains + evaluates + explains, ~1 min
+python scripts/build_report.py    # rebuilds the interactive HTML report
 ```
 
-That regenerates everything in `artifacts/`. The committed values are what a
-fresh run produces — the notebook and the command-line pipeline are two views
+That regenerates everything in `artifacts/`, and the report is derived from
+those artefacts only — it never re-trains. The committed values are what a
+fresh run produces: the notebook and the command-line pipeline are two views
 of the same code and write the same artefacts.
 
 To read the case study instead:
 
-- open [`Hospital_Readmission_ANN_SHAP.html`](Hospital_Readmission_ANN_SHAP.html) in a browser, or
+- open [`Hospital_Readmission_ANN_SHAP.html`](Hospital_Readmission_ANN_SHAP.html) in a browser —
+  the interactive report: threshold explorer over 91 cut-offs, per-patient SHAP
+  explainer, hoverable ROC/PR/lift charts;
+- open [`notebooks/hospital_readmission_ann_shap_output.html`](notebooks/hospital_readmission_ann_shap_output.html) for the
+  notebook rendered top-to-bottom, code and outputs, or
 - run `jupyter notebook notebooks/hospital_readmission_ann_shap.ipynb` and execute it top-to-bottom (~1 min, CPU).
 
 ## Artefacts
