@@ -1,0 +1,25 @@
+# Raw dataset — fetched by `python scripts/download_data.py`, never committed
+data/*.csv
+data/*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

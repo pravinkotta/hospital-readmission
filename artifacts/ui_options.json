@@ -1,0 +1,148 @@
+{
+  "categorical": {
+    "age": [
+      "[70-80)",
+      "[60-70)",
+      "[50-60)",
+      "[80-90)",
+      "[40-50)",
+      "[30-40)",
+      "[90-100)",
+      "[20-30)",
+      "[10-20)",
+      "[0-10)"
+    ],
+    "race": [
+      "Caucasian",
+      "AfricanAmerican",
+      "Unknown",
+      "Hispanic",
+      "Other",
+      "Asian"
+    ],
+    "gender": [
+      "Female",
+      "Male",
+      "Unknown/Invalid"
+    ],
+    "admission_type_id": [
+      "1",
+      "3",
+      "2",
+      "6",
+      "5",
+      "8",
+      "7",
+      "4"
+    ],
+    "insulin": [
+      "No",
+      "Steady",
+      "Down",
+      "Up"
+    ],
+    "A1Cresult": [
+      "nan",
+      ">8",
+      "Norm",
+      ">7"
+    ],
+    "max_glu_serum": [
+      "nan",
+      "Norm",
+      ">200",
+      ">300"
+    ],
+    "diag_1_group": [
+      "circulatory",
+      "other",
+      "respiratory",
+      "digestive",
+      "diabetes",
+      "injury",
+      "genitourinary",
+      "musculoskeletal",
+      "neoplasm"
+    ]
+  },
+  "ranges": {
+    "time_in_hospital": [
+      1,
+      14
+    ],
+    "num_lab_procedures": [
+      1,
+      132
+    ],
+    "num_procedures": [
+      0,
+      6
+    ],
+    "num_medications": [
+      1,
+      81
+    ],
+    "number_outpatient": [
+      0,
+      40
+    ],
+    "number_emergency": [
+      0,
+      76
+    ],
+    "number_inpatient": [
+      0,
+      21
+    ],
+    "number_diagnoses": [
+      1,
+      16
+    ]
+  },
+  "defaults": {
+    "time_in_hospital": 3,
+    "num_lab_procedures": 1,
+    "num_procedures": 0,
+    "num_medications": 13,
+    "number_outpatient": 0,
+    "number_emergency": 0,
+    "number_inpatient": 0,
+    "number_diagnoses": 9,
+    "race": "Caucasian",
+    "gender": "Female",
+    "age": "[70-80)",
+    "admission_type_id": "1",
+    "discharge_disposition_id": "1",
+    "admission_source_id": "7",
+    "max_glu_serum": "nan",
+    "A1Cresult": "nan",
+    "insulin": "No",
+    "change": "0",
+    "diabetesMed": "1",
+    "diag_1_group": "circulatory",
+    "diag_2_group": "circulatory",
+    "diag_3_group": "other",
+    "metformin": "0",
+    "repaglinide": "0",
+    "nateglinide": "0",
+    "chlorpropamide": "0",
+    "glimepiride": "0",
+    "acetohexamide": "0",
+    "glipizide": "0",
+    "glyburide": "0",
+    "tolbutamide": "0",
+    "pioglitazone": "0",
+    "rosiglitazone": "0",
+    "acarbose": "0",
+    "miglitol": "0",
+    "troglitazone": "0",
+    "tolazamide": "0",
+    "examide": "Unknown",
+    "citoglipton": "Unknown",
+    "glyburide-metformin": "0",
+    "glipizide-metformin": "0",
+    "glimepiride-pioglitazone": "0",
+    "metformin-rosiglitazone": "0",
+    "metformin-pioglitazone": "0"
+  }
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "feature": "number_inpatient",
+    "mean_abs": 0.26884956276416777
+  },
+  {
+    "feature": "discharge_disposition_id_1",
+    "mean_abs": 0.17967575526237486
+  },
+  {
+    "feature": "number_diagnoses",
+    "mean_abs": 0.1247861093627289
+  },
+  {
+    "feature": "discharge_disposition_id_25",
+    "mean_abs": 0.11071658296789974
+  },
+  {
+    "feature": "time_in_hospital",
+    "mean_abs": 0.06398991166292399
+  },
+  {
+    "feature": "diag_1_group_circulatory",
+    "mean_abs": 0.06232159402768593
+  },
+  {
+    "feature": "diabetesMed_1",
+    "mean_abs": 0.06205471514724195
+  },
+  {
+    "feature": "metformin_1",
+    "mean_abs": 0.051665221307892355
+  },
+  {
+    "feature": "num_procedures",
+    "mean_abs": 0.04771060835209209
+  },
+  {
+    "feature": "discharge_disposition_id_3",
+    "mean_abs": 0.046720562703092584
+  },
+  {
+    "feature": "diag_1_group_respiratory",
+    "mean_abs": 0.04527541050102445
+  },
+  {
+    "feature": "num_medications",
+    "mean_abs": 0.043087807708827315
+  }
+]
