@@ -309,6 +309,14 @@ def main() -> int:
     dump("feature_meta.json", {"features": feature_names, "n_inputs": len(feature_names)})
     dump("ui_options.json", build_ui_options(train))
 
+    # ---- experiment tracking ------------------------------------------------
+    # Deliberately *not* written into metrics.json: the notebook and this
+    # script must keep producing byte-identical artefacts (README contract).
+    # MLflow is a side channel — params, metrics, model, registry version.
+    from .tracking import log_run
+
+    run_id = log_run(model, metrics, training, len(feature_names))
+
     # ---- explainability ----------------------------------------------------
     background = explain.build_background(x_train)
     explainer = explain.build_explainer(model, background)
@@ -339,6 +347,8 @@ def main() -> int:
                 "f1": metrics["f1"],
                 "threshold": metrics["threshold"],
                 "features": len(feature_names),
+                "mlflow_run_id": run_id,
+                "mlflow_ui": "mlflow server --backend-store-uri sqlite:///mlflow.db --port 5000",
             },
             indent=2,
         )

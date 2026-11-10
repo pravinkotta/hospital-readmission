@@ -9,8 +9,23 @@ joblib>=1.4
 shap>=0.46
 matplotlib>=3.8
 
+# GenAI discharge alert stage (requires OPENAI_API_KEY)
+openai>=1.40
+
 # Notebook execution + HTML export
 nbformat>=5.9
 nbclient>=0.9
 nbconvert>=7.16
 ipykernel>=6.29
+
+# Serving (FastAPI) + tests
+fastapi>=0.115
+uvicorn>=0.30
+pytest>=8.0
+
+# Experiment tracking + registry (local SQLite backend)
+mlflow>=2.14
+
+# Governance: fairness audit + drift monitoring
+fairlearn>=0.10
+evidently>=0.7

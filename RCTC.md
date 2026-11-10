@@ -120,3 +120,46 @@ Deliver a reproducible, honestly measured, GitHub-ready ML repository:
 - Live hosting / URL for the demo (deferred — see C8).
 - Hyperparameter search, alternative architectures, calibration.
 - Prospective validation on any dataset other than the UCI benchmark.
+
+---
+
+## Amendment — GenAI alert stage (added after mentor review)
+
+The pipeline was extended by one stage: **`… → SHAP → GenAI Alert`** (a
+discharge summary written by an LLM from the patient's SHAP drivers and
+encounter facts). Implemented in `src/alert.py`, run with
+`python -m src.alert`.
+
+It remains inside the original constraints: numbers come from artefacts only
+(C2), no new heavy dependencies beyond the `openai` client (C3), CPU-only and
+seconds per alert (C4), patients come from the untouched held-out test split
+(C5), and the stage is a command, not a deployment (C8). It calls the OpenAI
+API unconditionally and requires `OPENAI_API_KEY`; a missing key or failed call
+exits non-zero rather than writing anything, so C7 still holds for
+`python -m src.train` and no artefact can be mistaken for LLM output.
+
+---
+
+## Amendment — MLOps & governance (phase 2, after mentor review)
+
+Requested scope: *Feature Engineering → MLflow tracking/registry → FastAPI →
+Docker → GitHub Actions → EC2 → Evidently drift → HITL gate → XAI/fairness/EU
+AI Act*. LIME and Grad-CAM were **deliberately rejected**: they address image
+and text models, this model is tabular (reasoning in
+[GOVERNANCE.md](GOVERNANCE.md)). Bronze/Silver/Gold medallion layers were
+dropped in favour of the lighter provenance already in `data_profile.json`.
+
+| # | Phase-2 constraint | Enforcement |
+|---|---|---|
+| P1 | Serve the artefacts, never retrain at request time | `src/api.py` loads `model.pt` + `preprocessor.joblib` once; `/predict` transforms one row |
+| P2 | Spending endpoints must be authenticated | `/alert` requires `X-API-Key` (constant-time compare), 503 when unconfigured, `.dockerignore` excludes `.env` |
+| P3 | Tracking must not fork the source of truth | MLflow is a side channel; `metrics.json` byte-identical before/after wiring (verified), notebook and CLI still agree |
+| P4 | Governance numbers are measured, with caveats attached | `fairness.json` embeds its own `notes`; drift `recommend_retrain` is recorded, not executed |
+| P5 | Reproducibility survives the new stack | CI retrains from the raw CSV, re-runs the audit and asserts metrics within ±0.01 of the README table |
+| P6 | Deployment is bounded and reversible | EC2 `--restart unless-stopped`, stop between sessions, Elastic IP — see [DEPLOY.md](DEPLOY.md) |
+
+Still out of scope: TLS/ALB, Kubernetes, external validation, Art. 43
+conformity assessment (requires a notified body).
+
+Timing note: C4's "~1 minute" became ~1.5 minutes (training + MLflow + model
+registration), still CPU-only.

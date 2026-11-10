@@ -1,0 +1,61 @@
+name: CI
+
+# The pipeline is the test: every push retrains from the raw UCI data and
+# runs the suite against the freshly produced artefacts. If a change breaks
+# reproducibility, leakage guards, the API contract or the SHAP additivity
+# check, the badge goes red.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # CPU-only torch: the default Linux wheel drags in CUDA (~2.5 GB)
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Fetch dataset (19 MB CSV, not committed)
+        run: python scripts/download_data.py
+
+      - name: Retrain (writes artefacts + MLflow run)
+        run: python -m src.train
+
+      - name: Fairness + drift audit
+        run: python -m src.audit
+
+      - name: Tests (API contract, metrics, explainability)
+        run: python -m pytest tests -q
+
+      - name: Metrics must match the README table
+        run: |
+          python - <<'PY'
+          import json
+          m = json.load(open("artifacts/metrics.json"))
+          expected = {"roc_auc": 0.6754, "pr_auc": 0.2319, "f1": 0.2862}
+          for key, want in expected.items():
+              got = m[key]
+              assert abs(got - want) <= 0.01, f"{key}: {got} != {want} (tolerance 0.01)"
+          print("metrics within tolerance:", {k: m[k] for k in expected})
+          PY
+
+      - name: No secrets, no raw dataset in the repo
+        run: |
+          test ! -f .env || (echo ".env must never be committed" && exit 1)
+          git ls-files | grep -qE '\.env$' && exit 1 || echo "no .env tracked"
+          git ls-files | grep -qE 'data/.*\.csv$' && exit 1 || echo "no raw CSV tracked"

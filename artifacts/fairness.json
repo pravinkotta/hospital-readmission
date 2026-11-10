@@ -1,0 +1,151 @@
+{
+  "threshold_used": 0.57,
+  "attributes": {
+    "race": {
+      "groups": {
+        "AfricanAmerican": {
+          "n": 2810,
+          "label_rate": 0.1231,
+          "selection_rate": 0.258,
+          "tpr": 0.4191,
+          "fpr": 0.2354
+        },
+        "Asian": {
+          "n": 103,
+          "label_rate": 0.1456,
+          "selection_rate": 0.1845,
+          "tpr": 0.6,
+          "fpr": 0.1136
+        },
+        "Caucasian": {
+          "n": 11066,
+          "label_rate": 0.1186,
+          "selection_rate": 0.2446,
+          "tpr": 0.4405,
+          "fpr": 0.2183
+        },
+        "Hispanic": {
+          "n": 311,
+          "label_rate": 0.1125,
+          "selection_rate": 0.209,
+          "tpr": 0.5429,
+          "fpr": 0.1667
+        },
+        "Other": {
+          "n": 207,
+          "label_rate": 0.0676,
+          "selection_rate": 0.1981,
+          "tpr": 0.5714,
+          "fpr": 0.171
+        },
+        "Unknown": {
+          "n": 344,
+          "label_rate": 0.0814,
+          "selection_rate": 0.1308,
+          "tpr": 0.25,
+          "fpr": 0.1203
+        }
+      },
+      "demographic_parity_difference": 0.1272,
+      "equalized_odds_difference": 0.35
+    },
+    "gender": {
+      "groups": {
+        "Female": {
+          "n": 8189,
+          "label_rate": 0.1216,
+          "selection_rate": 0.2518,
+          "tpr": 0.4398,
+          "fpr": 0.2258
+        },
+        "Male": {
+          "n": 6652,
+          "label_rate": 0.1133,
+          "selection_rate": 0.2315,
+          "tpr": 0.435,
+          "fpr": 0.2055
+        }
+      },
+      "demographic_parity_difference": 0.0203,
+      "equalized_odds_difference": 0.0203
+    },
+    "age": {
+      "groups": {
+        "[0-10)": {
+          "n": 34,
+          "label_rate": 0.0294,
+          "selection_rate": 0.0,
+          "tpr": 0.0,
+          "fpr": 0.0
+        },
+        "[10-20)": {
+          "n": 91,
+          "label_rate": 0.022,
+          "selection_rate": 0.022,
+          "tpr": 0.0,
+          "fpr": 0.0225
+        },
+        "[20-30)": {
+          "n": 265,
+          "label_rate": 0.1358,
+          "selection_rate": 0.2943,
+          "tpr": 0.5556,
+          "fpr": 0.2533
+        },
+        "[30-40)": {
+          "n": 560,
+          "label_rate": 0.125,
+          "selection_rate": 0.2125,
+          "tpr": 0.4714,
+          "fpr": 0.1755
+        },
+        "[40-50)": {
+          "n": 1465,
+          "label_rate": 0.1126,
+          "selection_rate": 0.2437,
+          "tpr": 0.5333,
+          "fpr": 0.2069
+        },
+        "[50-60)": {
+          "n": 2587,
+          "label_rate": 0.102,
+          "selection_rate": 0.1937,
+          "tpr": 0.4318,
+          "fpr": 0.1666
+        },
+        "[60-70)": {
+          "n": 3359,
+          "label_rate": 0.1099,
+          "selection_rate": 0.2391,
+          "tpr": 0.4092,
+          "fpr": 0.2181
+        },
+        "[70-80)": {
+          "n": 3655,
+          "label_rate": 0.1259,
+          "selection_rate": 0.2599,
+          "tpr": 0.4304,
+          "fpr": 0.2354
+        },
+        "[80-90)": {
+          "n": 2457,
+          "label_rate": 0.1327,
+          "selection_rate": 0.291,
+          "tpr": 0.4448,
+          "fpr": 0.2675
+        },
+        "[90-100)": {
+          "n": 368,
+          "label_rate": 0.1549,
+          "selection_rate": 0.2092,
+          "tpr": 0.2982,
+          "fpr": 0.1929
+        }
+      },
+      "demographic_parity_difference": 0.2943,
+      "equalized_odds_difference": 0.5556
+    }
+  },
+  "notes": "Disparities are observations about this model on the UCI test split, not proof of discrimination; small groups carry wide uncertainty. Any deployment would require a domain review before acting on these numbers.",
+  "test_size": 14841
+}

@@ -1,0 +1,106 @@
+{
+  "generated_at": "2026-11-09T08:15:16+00:00",
+  "source": "openai:gpt-4o-mini",
+  "threshold": 0.57,
+  "cases": [
+    {
+      "rank": 1,
+      "patient_nbr": 88479036,
+      "probability": 0.961,
+      "threshold": 0.57,
+      "flagged": true,
+      "risk_band": "High",
+      "recommended_action": "Escalate: transition-of-care follow-up",
+      "facts": {
+        "age_band": "[70-80)",
+        "race": "Caucasian",
+        "gender": "Male",
+        "admission_type": "Urgent",
+        "discharge_destination": "Discharged/transferred to another rehab fac including rehab units of a hospital",
+        "length_of_stay_days": 9,
+        "prior_inpatient_visits": 12,
+        "prior_emergency_visits": 5,
+        "prior_outpatient_visits": 0,
+        "diagnoses_coded": 9,
+        "medications_this_stay": 21,
+        "primary_diagnosis": "diabetes",
+        "secondary_diagnosis": "circulatory",
+        "a1c_result": "not measured",
+        "glucose_serum_result": "not measured",
+        "insulin": "Steady",
+        "diabetes_medication_changed": false,
+        "on_diabetes_medication": true
+      },
+      "drivers": [
+        {
+          "feature": "number_inpatient",
+          "value": 9.068556785583496,
+          "contribution": 2.516395092010498,
+          "description": "inpatient visits in the prior 6 months: 12 (SHAP +2.516 log-odds)"
+        },
+        {
+          "feature": "discharge_disposition_id_22",
+          "value": 1.0,
+          "contribution": 0.6785211563110352,
+          "description": "discharge destination: Discharged/transferred to another rehab fac including rehab units of a hospital (SHAP +0.679 log-odds)"
+        },
+        {
+          "feature": "time_in_hospital",
+          "value": 1.5523391962051392,
+          "contribution": -0.15947270393371582,
+          "description": "length of stay (days): 9 (SHAP -0.159 log-odds)"
+        },
+        {
+          "feature": "diag_1_group_diabetes",
+          "value": 1.0,
+          "contribution": 0.12655483186244965,
+          "description": "primary diagnosis (ICD-9 chapter): diabetes (SHAP +0.127 log-odds)"
+        },
+        {
+          "feature": "discharge_disposition_id_1",
+          "value": 0.0,
+          "contribution": 0.12032108753919601,
+          "description": "discharge destination: not Discharged to home (SHAP +0.120 log-odds)"
+        },
+        {
+          "feature": "diag_3_group_genitourinary",
+          "value": 1.0,
+          "contribution": 0.08976215869188309,
+          "description": "tertiary diagnosis (ICD-9 chapter): genitourinary (SHAP +0.090 log-odds)"
+        },
+        {
+          "feature": "insulin_Steady",
+          "value": 1.0,
+          "contribution": -0.08228104561567307,
+          "description": "insulin: Steady (SHAP -0.082 log-odds)"
+        },
+        {
+          "feature": "age_[70-80)",
+          "value": 1.0,
+          "contribution": -0.062354136258363724,
+          "description": "age band: [70-80) (SHAP -0.062 log-odds)"
+        },
+        {
+          "feature": "admission_source_id_7",
+          "value": 1.0,
+          "contribution": -0.039383839815855026,
+          "description": "admission source: Emergency Room (SHAP -0.039 log-odds)"
+        },
+        {
+          "feature": "race_AfricanAmerican",
+          "value": 0.0,
+          "contribution": 0.035337481647729874,
+          "description": "race: not AfricanAmerican (SHAP +0.035 log-odds)"
+        }
+      ],
+      "source": "openai:gpt-4o-mini",
+      "model": "gpt-4o-mini",
+      "usage": {
+        "prompt_tokens": 1074,
+        "completion_tokens": 241,
+        "seconds": 5.35
+      },
+      "file": "alert_patient_88479036.md"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Never inside the image
+.env
+.env.*
+.git
+.github
+mlruns/
+mlflow.db
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Not needed at runtime
+notebooks/
+tests/
+scripts/
+docs/
+*.md
+data/*.zip
+artifacts/drift_report.html
+
+# Heavy, regenerable
+Hospital_Readmission_ANN_SHAP.html
