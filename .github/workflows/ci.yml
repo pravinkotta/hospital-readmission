@@ -39,7 +39,19 @@ jobs:
       - name: Fairness + drift audit
         run: python -m src.audit
 
-      - name: Tests (API contract, metrics, explainability)
+      - name: XGBoost baseline (README comparison table)
+        run: |
+          python -m src.baseline
+          python - <<'PY'
+          import json
+          b = json.load(open("artifacts/baseline.json"))
+          delta = b["roc_auc_delta_ann_minus_xgb"]
+          assert abs(delta - 0.0069) <= 0.01, f"ANN-XGB delta moved: {delta} (README says +0.0069)"
+          assert b["test"]["roc_auc"] > 0.60, "XGBoost baseline collapsed"
+          print("baseline within tolerance: delta", delta, "| verdict:", b["verdict"][:60])
+          PY
+
+      - name: Tests (API contract, metrics, explainability, RAG)
         run: python -m pytest tests -q
 
       - name: Metrics must match the README table

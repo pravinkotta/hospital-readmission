@@ -1,7 +1,13 @@
 {
-  "generated_at": "2026-11-09T08:15:16+00:00",
+  "generated_at": "2026-11-11T06:00:36+00:00",
   "source": "openai:gpt-4o-mini",
   "threshold": 0.57,
+  "rag": {
+    "enabled": true,
+    "collection": "discharge_guidelines",
+    "top_k": 5,
+    "index": "C:\\Users\\pravi\\Documents\\Default Project\\hospital-readmission\\artifacts\\chroma"
+  },
   "cases": [
     {
       "rank": 1,
@@ -93,12 +99,60 @@
           "description": "race: not AfricanAmerican (SHAP +0.035 log-odds)"
         }
       ],
+      "retrieval_query": "High 30-day readmission risk: discharge planning and post-discharge follow-up for a patient with primary diagnosis diabetes, 12 prior inpatient visits, discharged to Discharged/transferred to another rehab fac including rehab units of a hospital",
+      "guideline_chunks": [
+        {
+          "rank": 1,
+          "id": "ahrq-red-tool-1-overview#002",
+          "text": "st Results: Test results are not always complete by the time the patient leaves the hospital. This means the test results will not be included in the report the patient's primary care doctor receives.\n- Lack of Followup: Patients themselves often do not fully understand the nature of their health problems or realize they need to make appointments for tests or procedures after leaving the hospital. They may be unable to make appointments due to lack of access to transportation or availability of appropriate doctors/specialists. Research has found that more than one-third of the patients who left the hospital in need of more care (e.g., lab tests or a referral to a specialist) failed to get that care.10,11\n\n- Medicine Reconciliation and Adverse Events: Confusion about which medicines to take can also lead to problems after a patient leaves the hospital. When patients are admitted to the hospital, many stop taking their regular medicines and start taking new ones. Once they leave the hospital, there is often confusion regarding which of the prehospitalization medicines should be continued. This may result in the patient failing to take needed medicine, taking duplicate medicine, or experiencing adverse drug events or natural remedy interactions.\n\nThe result of hospitals' failure to ensure an effective transition has included adverse events, high readmission rates, and high ED visit rates.8,12,13 Forces are, however, converging to push hospitals toward improving their discharge processes and reducing readmission rates.\n\nOne force is that national quality organizations have begun to set standards to address some of the deficiencies of discharge planning. For example, National Quality Forum (NQF) Safe Practice-15 lays out key processes of an effective discharge plan, including communicating discharge information to community providers.14 NQF has recently endorsed three readmission performance measures: hospital-specific, risk-standardized, and all-cause 30-day readmission rates. The Centers for Medicare & Medicaid Services (CMS) has begun public reporting of these measures.",
+          "doc": "ahrq-red-tool-1-overview",
+          "title": "AHRQ RED Toolkit \u2014 Tool 1: Overview of the Re-Engineered Discharge",
+          "url": "https://www.ahrq.gov/patient-safety/settings/hospital/red/toolkit/redtool1.html",
+          "score": 0.591
+        },
+        {
+          "rank": 2,
+          "id": "ahrq-red-tool-1-overview#001",
+          "text": "vercoming language barriers.\n\nComponents of the RED\n\n- Ascertain need for and obtain language assistance.\n\n- Make appointments for followup care (e.g., medical appointments, postdischarge tests/labs).\n- Plan for the followup of results from tests or labs that are pending at discharge.\n\n- Organize postdischarge outpatient services and medical equipment.\n\n- Identify the correct medicines and a plan for the patient to obtain them.\n\n- Reconcile the discharge plan with national guidelines.\n\n- Teach a written discharge plan the patient can understand.\n\n- Educate the patient about his or her diagnosis and medicines.\n\n- Review with the patient what to do if a problem arises.\n\n- Assess the degree of the patient's understanding of the discharge plan.\n\n- Expedite transmission of the discharge summary to clinicians accepting care of the patient.\n\n- Provide telephone reinforcement of the discharge plan.\n\n## Reasons To Re-Engineer Your Discharge Process\n\nThe hospital discharge is a complex process requiring integrated communications among the inpatient care team, primary care team, community services, the patient, and the patient's caregivers. There are many opportunities for improved discharge processes at U.S. hospitals that, if accomplished, could lead to reduced rehospitalization of patients,3-7 which is currently at a rate of almost 1 in 5 for patients covered by Medicare.8 Contributing factors include:\n\n- Delayed Transfer of Discharge Summary: There is frequently a delay between the time a patient is released from the hospital and when the primary care doctor receives the discharge summary.9 This delay means the doctor is not immediately aware of which tests and procedures were done during the patient's hospital stay or what conditions still need attention.\n\n- Unknown Test Results: Test results are not always complete by the time the patient leaves the hospital. This means the test results will not be included in the report the patient's primary care doctor receives.",
+          "doc": "ahrq-red-tool-1-overview",
+          "title": "AHRQ RED Toolkit \u2014 Tool 1: Overview of the Re-Engineered Discharge",
+          "url": "https://www.ahrq.gov/patient-safety/settings/hospital/red/toolkit/redtool1.html",
+          "score": 0.5864
+        },
+        {
+          "rank": 3,
+          "id": "ahrq-red-tool-1-overview#003",
+          "text": "ion performance measures: hospital-specific, risk-standardized, and all-cause 30-day readmission rates. The Centers for Medicare & Medicaid Services (CMS) has begun public reporting of these measures.\nA second force comes from quality improvement organizations that have set out to help hospitals improve their discharge processes. For example, in the Quality Improvement Organizations' 9th Scope of Work, CMS included a theme titled Patient Pathways (Care Transitions). The goal of this theme was to measurably improve the quality of care for Medicare beneficiaries who transition among care settings, with the goal of reducing readmissions and developing replicable strategies to sustain reduced readmission rates.15\n\nA third force is the prospect that payment for readmissions will be changed. In its 2007 report to Congress, the Medicare Payment Advisory Commission (MedPac) identified a potential savings of $12 billion per year by reducing preventable readmissions.16 In its June 2008 report, MedPAC recommended that Medicare adopt a bundled payment approach. This means paying a single provider entity (comprising a hospital and its affiliated physicians) a fixed amount to cover the costs of providing the full range of Medicare covered services delivered during an episode of care (e.g., the hospital stay plus 30 days after discharge).17\n\nIn April 2008 CMS sought public comment on two proposals to revise hospital payments to provide hospitals with financial incentives to reduce avoidable readmissions. The first is to reduce payments for preventable readmissions. The second is to incorporate readmission rates into the calculation of performance-based payments in the value-based performance plan. The Hospital Readmissions Reduction Program included in the Patient Protection and Affordable Care Act of 2010 states that as of October 1, 2012, Medicare will reduce payments to hospitals with \"excess readmission rates\" for heart attacks, heart failure, and pneumonia.18\n\n## Impact of RED",
+          "doc": "ahrq-red-tool-1-overview",
+          "title": "AHRQ RED Toolkit \u2014 Tool 1: Overview of the Re-Engineered Discharge",
+          "url": "https://www.ahrq.gov/patient-safety/settings/hospital/red/toolkit/redtool1.html",
+          "score": 0.5862
+        },
+        {
+          "rank": 4,
+          "id": "ahrq-red-tool-1-overview#004",
+          "text": "able Care Act of 2010 states that as of October 1, 2012, Medicare will reduce payments to hospitals with \"excess readmission rates\" for heart attacks, heart failure, and pneumonia.18\n\n## Impact of RED\nWhile hospitals are likely to be motivated to improve their discharge process, with a specific goal of reducing readmissions, they may require support and guidelines to optimize success. A Cochrane review of discharge planning interventions indicated that a number of interventions did not have a measurable impact on readmission rates.22 The RED, however, has shown significant effects in a randomized controlled trial.2\n\nPatients who received the RED experienced a 30 percent lower rate of hospital utilization within 30 days of discharge compared to patients receiving usual care. One readmission or ED visit was prevented for every seven patients receiving the RED. Further, the RED patients cost an average of $412 less in the 30 days following hospital discharge than patients who did not receive the RED. This represents a 33.9 percent lower observed cost for this group. These results have important implications for quality of care and costs for the more than 38 million hospital discharges each year in the United States. Additional reasons to implement RED can be found in the box below.\n\nWhy Should Hospitals Use the RED?\n\nImproves Clinical Outcomes\n\n- Decreases 30-day readmission by 25 percent.\n\n- Decreases ED use from 24 percent to 16 percent.\n\n- Improves patient \"readiness for discharge.\"\n\n- Improves primary care provider followup.\n\nMeets Safety Standards and Improves Documentation\n\n- Accepted as NQF Safe Practice and endorsed by Institute for Healthcare Improvement, The Leapfrog Group for Patient Safety, and CMS\n\n- Meets Joint Commission standards.\n\n- Documents the discharge preparation.\n\n- Documents understanding of the discharge plan.\n\nImproves Return on Investment\n\n- Reduces costs by $412 per patient.\n\n- Allows higher level physician billing for discharge.\n\n- May reduce diversion and creates greater capacity for higher revenue patients.\n\n- May improve market share as \"preferred provider.\"\n\n- Improves relationships with ambulatory providers.",
+          "doc": "ahrq-red-tool-1-overview",
+          "title": "AHRQ RED Toolkit \u2014 Tool 1: Overview of the Re-Engineered Discharge",
+          "url": "https://www.ahrq.gov/patient-safety/settings/hospital/red/toolkit/redtool1.html",
+          "score": 0.5832
+        },
+        {
+          "rank": 5,
+          "id": "ahrq-red-tool-3-assess-readiness#012",
+          "text": ", a patient admitted for chest pain also has hypertension, education about the proper monitoring of hypertension may potentially avoid rehospitalization.\n\nEngage in Daily Interactions With the Patient\nThe goal of the followup patient sessions is to teach and reinforce important health and treatment plan information. It also is to identify and address discrepancies between the medical team's discharge plan and the patient's understanding of the discharge plan, as well as barriers to patient understanding. Following the initial meeting, you will make a plan with the patient to return to teach elements of the RED and address any new concerns. Encourage patients to identify someone who can support them during their transition to include in the conversations.\n\nYou will not always have the opportunity to teach and reinforce ALL identified elements for each patient. This will often be due to short hospital stays. You will need to assess and prioritize what you will cover based on factors such as:\n\n- Patient's needs, requests, and receptiveness.\n\n- Gaps in the discharge plan.\n\n- Patient's involvement in community services.\n\n- New problems/diagnoses versus old.\n\n- Which parts of the education can be done safely after discharge.\n\nThe postdischarge telephone call can be used to deal with the elements that were not fully covered by the time of discharge. It is important to assess whether the patient or caregivers will want interpreter services for phone calls. Do not assume that because people can speak in English without an interpreter at the hospital they will be able to comfortably complete the phone call in English. A telephone presents another hurdle, as it removes context, body language, and lip movement.",
+          "doc": "ahrq-red-tool-3-assess-readiness",
+          "title": "AHRQ RED Toolkit \u2014 Tool 3: Assess Patient Readiness for Discharge",
+          "url": "https://www.ahrq.gov/patient-safety/settings/hospital/red/toolkit/redtool3.html",
+          "score": 0.5622
+        }
+      ],
       "source": "openai:gpt-4o-mini",
       "model": "gpt-4o-mini",
       "usage": {
-        "prompt_tokens": 1074,
-        "completion_tokens": 241,
-        "seconds": 5.35
+        "prompt_tokens": 3602,
+        "completion_tokens": 411,
+        "seconds": 13.26
       },
       "file": "alert_patient_88479036.md"
     }

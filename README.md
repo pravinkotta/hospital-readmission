@@ -2,7 +2,8 @@
 
 Predicting **30-day readmission** for diabetic inpatients with a PyTorch
 artificial neural network, explained feature-by-feature with **SHAP**, then
-written up as a clinician-facing discharge alert by an LLM — built as
+written up as a clinician-facing discharge alert by an LLM **grounded in
+retrieved AHRQ discharge guidelines (RAG)** — built as
 a case study against an explicit [Role / Context / Task / Constraints spec](RCTC.md).
 
 > **Read the results interactively:** [Hospital_Readmission_ANN_SHAP.html](Hospital_Readmission_ANN_SHAP.html)
@@ -10,6 +11,14 @@ a case study against an explicit [Role / Context / Task / Constraints spec](RCTC
 > hover any chart). No server, no CDN, works offline.
 > Linear alternative: [notebook as HTML](notebooks/hospital_readmission_ann_shap_output.html) ·
 > source: [notebooks/hospital_readmission_ann_shap.ipynb](notebooks/hospital_readmission_ann_shap.ipynb)
+
+> **Live API:** [http://readmission.duckdns.org:8000](http://readmission.duckdns.org:8000)
+> — `GET /health` · `POST /predict` · `POST /alert` (API-key gated) · interactive
+> docs at `/docs`. The box is stopped between sessions; start it first
+> ([DEPLOY.md](DEPLOY.md)). The DuckDNS name is self-syncing, so the URL never changes.
+
+> **Week-9 deliverables:** [Capstone-Writeup.pdf](Capstone-Writeup.pdf) (1 page) ·
+> [Capstone-Deck.pdf](Capstone-Deck.pdf) (10 slides)
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.14-orange)
@@ -61,6 +70,30 @@ clinical deployment would require, and the data is from 1999–2008.
 
 Training: 22 epochs, early-stopped, best validation ROC-AUC **0.6751**, ~40 s on
 CPU. 120 input features, 9,857 parameters.
+
+### Does the ANN beat gradient boosting? (measured, not assumed)
+
+The honest baseline question — same cleaned data, same patient-level split,
+same fitted preprocessor, same validation-tuned threshold, same `evaluate`
+code (`python -m src.baseline`, ~15 s):
+
+| Metric | ANN | XGBoost baseline | Δ (ANN − XGB) |
+|---|---:|---:|---:|
+| ROC-AUC | **0.6754** | 0.6685 | **+0.0069** |
+| PR-AUC | 0.2319 | **0.2326** | −0.0007 |
+| Recall @ tuned threshold | 0.4377 | 0.4377 | ±0.0000 |
+| F1 @ tuned threshold | 0.2862 | 0.2861 | +0.0001 |
+| Tuned threshold | 0.57 | 0.54 | |
+
+XGBoost: 500 trees, depth 5, lr 0.05, early-stopped at iteration 324,
+`scale_pos_weight` for the imbalance. **Verdict (from
+`artifacts/baseline.json`): statistical tie** — the ANN edges ROC-AUC by
+0.007, XGBoost edges PR-AUC by 0.0007, recall is identical to four decimals.
+The ANN does not outperform gradient boosting here, which is the expected
+result on ~100K rows of tabular data. The ANN is kept for the **SHAP
+explainability path**, not because it ran away with the metrics — and the
+comparison is recorded rather than hidden, because "does the ANN actually
+beat the baseline?" is the first question anyone asks.
 
 ---
 
@@ -121,10 +154,23 @@ So SHAP values in this project are in **log-odds, not probability**.
 
 ---
 
-## GenAI discharge alert
+## GenAI discharge alert — with RAG grounding
 
-The last stage of the pipeline — `ANN → SHAP → LLM` — turns a prediction into
-something a discharge team can actually use:
+The last stage of the pipeline — `ANN → SHAP → RAG → LLM` — turns a
+prediction into something a discharge team can actually use.
+
+**RAG first:** `src/rag.py` chunks the AHRQ **Re-Engineered Discharge (RED)**
+toolkit documents in `guidelines/` (512 tokens / 50 overlap, paragraph- then
+sentence-boundaries), embeds them with `text-embedding-3-small`, and stores
+them in a persistent **Chroma** index at `artifacts/chroma` (cosine, 4
+documents → 38 chunks). At alert time the top-**5** chunks for that case are
+retrieved and handed to the model as `[S1]…[S5]`.
+
+```bash
+python scripts/fetch_guidelines.py   # (re)fetch the guideline corpus — committed
+python -m src.rag --build            # chunk + embed -> artifacts/chroma
+python -m src.rag --query "postdischarge follow-up call"   # sanity check
+```
 
 **This stage always calls the OpenAI API** — it requires an OpenAI key and has
 no template fallback. The key is read from `OPENAI_API_KEY`, or from a `.env`
@@ -135,36 +181,43 @@ that no LLM wrote is ever saved as an alert.
 
 ```bash
 echo "OPENAI_API_KEY=sk-..." > .env   # once, gitignored
-python -m src.alert             # 3 highest-risk held-out patients
+python -m src.alert             # 3 highest-risk held-out patients, RAG-grounded
 python -m src.alert --n 1       # just the top one
 python -m src.alert --patient 12345678 --patient 87654321
+python -m src.alert --no-rag    # opt out of retrieval (loses ## Sources grounding)
 python -m src.alert --model gpt-4o   # different OpenAI model (env OPENAI_MODEL also works)
 ```
 
 For each patient `src/alert.py` re-scores the **same held-out test split** used
 for the metrics above, computes that patient's SHAP drivers, writes an
 encounter fact sheet (demographics, prior visits, diagnoses, discharge
-destination read from `IDS_mapping.csv`), and asks an OpenAI model
-(`gpt-4o-mini` by default) to draft a four-section
+destination read from `IDS_mapping.csv`), retrieves the top-5 guideline chunks,
+and asks an OpenAI model (`gpt-4o-mini` by default) to draft a five-section
 alert: **risk summary · why the model flagged this patient · suggested
-discharge actions · caveat**.
+discharge actions · sources · caveat**.
 
 Design rules, so the stage survives questioning:
 
 - **The LLM never does arithmetic or lookup.** Probability, threshold, band and
   every fact in the prompt come from the artefacts and the dataset — the model
   only words them. The system prompt forbids inventing anything not in the input.
+- **Every suggested action must cite a retrieved chunk** (`[S1]`, `[S2]`, …)
+  and the `## Sources` section lists the exact documents used with their URLs.
+  A suggestion no chunk supports must be replaced by "insufficient guidance" —
+  the anti-hallucination guardrail, stated in the prompt and testable.
 - **SHAP contributions are labelled as log-odds** and framed as reasons the
   *model* flagged the patient, not causes of readmission.
 - **Fail loudly, never silently.** Missing key → immediate non-zero exit before
-  any data loads; API error → the API's own error, non-zero exit, and nothing
-  saved. `alerts.json` is written only after every selected alert succeeded, so
-  a failed run can never leave an index pointing at half a result. It records
-  `source: openai:<model>` and the token usage for every alert, so each file
-  traces back to the call that produced it.
+  any data loads; **missing RAG index → immediate non-zero exit with build
+  instructions** (checked before the first OpenAI call); API error → the API's
+  own error, non-zero exit, and nothing saved. `alerts.json` is written only
+  after every selected alert succeeded, so a failed run can never leave an
+  index pointing at half a result. It records `source: openai:<model>`, the
+  token usage, the retrieval query and the retrieved chunk ids for every alert.
 
 Outputs: `artifacts/alerts/alert_patient_<id>.md` per patient plus
-`artifacts/alerts.json` (risk, drivers, facts, model, token usage, source).
+`artifacts/alerts.json` (risk, drivers, facts, retrieved chunks, model, token
+usage, source).
 
 ---
 
@@ -176,10 +229,10 @@ uvicorn src.api:app --port 8000        # docs at http://localhost:8000/docs
 
 | Endpoint | Auth | Returns |
 |---|---|---|
-| `GET /health` | — | status, threshold, test ROC-AUC, whether `/alert` is enabled |
+| `GET /health` | — | status, threshold, test ROC-AUC, whether `/alert` is enabled, **RAG index status** |
 | `GET /cohort/sample` | — | a complete cleaned encounter (highest-risk patient by default) |
 | `POST /predict` | — | `probability`, `risk_band`, **`requires_human_review`**, optional `explain: true` → SHAP drivers |
-| `POST /alert` | `X-API-Key` | LLM discharge summary + token usage |
+| `POST /alert` | `X-API-Key` | LLM discharge summary + **`retrieval` block (query, top-5 chunks with labels/URLs/scores)** + token usage |
 
 ```bash
 curl -X POST localhost:8000/predict -H "Content-Type: application/json" \
@@ -194,9 +247,14 @@ Two decisions worth defending:
 - **`requires_human_review`** on every response is the EU AI Act Art. 14
   human-oversight gate: nothing in this repo acts on a patient, it scores and
   drafts — the decision stays with a human.
+- **`/alert` fails loud if the RAG index is missing** (503 with build
+  instructions) instead of quietly producing an ungrounded narrative —
+  same philosophy as the missing-key exit, one layer up.
 
-Tests: `python -m pytest tests -q` — **17 tests**, covering the API contract,
-the README metrics, determinism, auth refusal and the governance artefacts.
+Tests: `python -m pytest tests -q` — **28 tests**, covering the API contract,
+the README metrics, determinism, auth refusal, the governance artefacts and
+the RAG layer (chunking, index round-trip with a fake embedder, `[Sx]` prompt
+contract, fail-loud index errors — all offline, no OpenAI key needed).
 CI (`.github/workflows/ci.yml`) re-trains from the raw CSV and runs them on
 every push.
 
@@ -249,17 +307,25 @@ docker run --rm -p 8000:8000 --env-file .env readmission-api
 ```
 
 CPU-only torch wheel — measured image size **3.3 GB** (the full dependency
-stack: torch, MLflow, Evidently, SHAP), `.env` injected at run time —
-`.dockerignore` keeps the secret out of every image layer. Verified
-end-to-end: `/health`, `/predict` and a real authenticated `/alert` call all
-answer from inside the container.
+stack: torch, MLflow, Evidently, SHAP, Chroma), `.env` injected at run time —
+`.dockerignore` keeps the secret out of every image layer. The image ships the
+committed artefacts **including the Chroma RAG index** (`artifacts/chroma`) and
+the `guidelines/` source corpus, so `/alert` is grounded out of the box.
+Verified end-to-end: `/health`, `/predict` and a real authenticated `/alert`
+call all answer from inside the container.
 
-## Deploy — EC2
+## Deploy — EC2 (live)
+
+**Live:** [**http://readmission.duckdns.org:8000**](http://readmission.duckdns.org:8000)
+— a stable DuckDNS name that a systemd timer on the box re-points at every
+boot, so stop/start cycles never change the URL (the same pattern as
+`peds-detect.duckdns.org`).
 
 Full walkthrough in [**DEPLOY.md**](DEPLOY.md) — executed against a live
 `t3.micro` running **Amazon Linux 2023**: security group (22 + 8000) → Docker
-via `dnf` → 2 GB swap → `docker run --restart unless-stopped`, plus the billing,
-key-rotation and Windows `.pem` ACL notes. Stop the instance between sessions.
+via `dnf` → 2 GB swap → `docker run --restart unless-stopped` → DuckDNS
+systemd updater, plus the billing, key-rotation and Windows `.pem` ACL notes.
+Stop the instance between sessions; start it a few minutes before a demo.
 
 ---
 
@@ -279,22 +345,27 @@ key-rotation and Windows `.pem` ACL notes. Stop the instance between sessions.
 │   └── hospital_readmission_ann_shap_output.html  notebook rendered linearly
 ├── scripts/
 │   ├── download_data.py                 fetches the UCI dataset
+│   ├── fetch_guidelines.py              fetches the AHRQ RED corpus into guidelines/
 │   ├── build_report.py                  rebuilds the interactive report
 │   └── report_template.html             its HTML/CSS/JS template (no CDN)
+├── guidelines/                          AHRQ RED toolkit markdown (committed, with source URLs)
 ├── src/
-│   ├── config.py        columns, ICD bands, hyperparameters, risk bands
+│   ├── config.py        columns, ICD bands, hyperparameters, risk bands, RAG settings
 │   ├── data.py          load, clean, ICD-9 chapter grouping
 │   ├── preprocess.py    ColumnTransformer + rare-level grouping
 │   ├── model.py         ReadmissionMLP + the (n,1) logit head SHAP needs
 │   ├── explain.py       DeepExplainer wrapper, global + local contributions
-│   ├── alert.py         `python -m src.alert` — SHAP + facts → LLM discharge alert
+│   ├── rag.py           `python -m src.rag` — chunk, embed, Chroma index, top-k retrieval
+│   ├── alert.py         `python -m src.alert` — SHAP + facts + RAG → LLM discharge alert
 │   ├── api.py           FastAPI service (/health /cohort/sample /predict /alert)
+│   ├── baseline.py      `python -m src.baseline` — XGBoost comparison on identical footing
 │   ├── tracking.py      MLflow run + model registry (SQLite backend)
 │   ├── audit.py         `python -m src.audit` — Fairlearn + Evidently
 │   └── train.py         `python -m src.train` — the whole pipeline
-├── tests/               17 tests: API contract, metrics, explainability, governance
+├── tests/               28 tests: API contract, metrics, explainability, governance, RAG
 ├── artifacts/           trained model, fitted preprocessor, metrics, SHAP output,
-│                        discharge alerts, fairness + drift summaries
+│                        discharge alerts, fairness + drift summaries,
+│                        chroma/ (RAG index), baseline.json (XGBoost comparison)
 └── data/                raw dataset (downloaded, not committed)
 ```
 
@@ -308,8 +379,10 @@ pip install -r requirements.txt
 python scripts/download_data.py   # ~3 MB download, extracts to data/
 python -m src.train               # trains + evaluates + explains + logs to MLflow, ~1.5 min
 python -m src.audit               # fairness + drift artefacts
-python -m src.alert               # SHAP-grounded discharge alerts (needs OPENAI_API_KEY)
-python -m pytest tests -q         # 17 tests
+python -m src.baseline            # XGBoost comparison -> artifacts/baseline.json, ~15 s
+python -m src.rag --build         # chunk guidelines/ -> Chroma index (needs OPENAI_API_KEY)
+python -m src.alert               # RAG-grounded discharge alerts (needs OPENAI_API_KEY)
+python -m pytest tests -q         # 28 tests
 python scripts/build_report.py    # rebuilds the interactive HTML report
 
 uvicorn src.api:app --port 8000   # serve the API (docs at /docs)
@@ -340,7 +413,9 @@ To read the case study instead:
 | `global_shap.json` | top-12 features by mean \|SHAP\| |
 | `feature_meta.json` | the 120 model input names |
 | `ui_options.json` / `data_profile.json` | cohort defaults and dataset profile |
-| `alerts.json` + `alerts/` | generated discharge alerts: risk, SHAP drivers, encounter facts, which model wrote each one |
+| `alerts.json` + `alerts/` | generated discharge alerts: risk, SHAP drivers, encounter facts, **retrieved guideline chunks per alert**, which model wrote each one |
+| `baseline.json` | XGBoost comparison run: params, test metrics, ANN-vs-XGB deltas, verdict |
+| `chroma/` | the RAG index — 38 chunks from 4 AHRQ documents (`python -m src.rag --build`) |
 | `fairness.json` | per-group rates + Fairlearn demographic-parity / equalised-odds differences |
 | `drift_summary.json` | Evidently drift verdict per column + `recommend_retrain` flag |
 | `drift_report.html` | the full Evidently report — regenerable (`python -m src.audit`), too big to commit |
@@ -362,11 +437,12 @@ To read the case study instead:
 
 ## Next steps
 
-Calibration curve · gradient-boosted baseline for comparison · TLS/ALB in
-front of the EC2 demo · scheduled drift job (cron) feeding the retrain gate ·
-external validation on a recent cohort · intersectional fairness analysis.
-Deployment was originally out of scope (RCTC constraint C8) and was added in
-phase 2 by the MLOps amendment — see [RCTC.md](RCTC.md).
+Calibration curve · rerank retrieved chunks (BM25 + vector hybrid) · expand the
+guideline corpus beyond AHRQ RED (ADA standards, condition-specific protocols)
+· TLS/ALB in front of the EC2 demo · scheduled drift job (cron) feeding the
+retrain gate · external validation on a recent cohort · intersectional fairness
+analysis. Deployment was originally out of scope (RCTC constraint C8) and was
+added in phase 2 by the MLOps amendment — see [RCTC.md](RCTC.md).
 
 ## Citation
 

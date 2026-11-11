@@ -150,6 +150,14 @@ RISK_BANDS = (
     (1.01, "High", "Escalate: transition-of-care follow-up"),
 )
 
+# ----------------------------------------------------------------- RAG layer
+
+GUIDELINE_DIR = ROOT / "guidelines"  # AHRQ RED toolkit markdown (committed)
+CHROMA_DIR = ARTIFACT_DIR / "chroma"  # built by `python -m src.rag --build`
+RAG_TOP_K = 5
+RAG_CHUNK_TOKENS = 512  # mentor's Week 6 chunking spec
+RAG_CHUNK_OVERLAP_TOKENS = 50
+
 # ------------------------------------------------------------------- app UI
 
 APP_TITLE = "Hospital readmission risk"

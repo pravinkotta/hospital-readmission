@@ -29,3 +29,7 @@ mlflow>=2.14
 # Governance: fairness audit + drift monitoring
 fairlearn>=0.10
 evidently>=0.7
+
+# RAG: guideline index (Chroma) + gradient-boosting baseline
+chromadb>=0.5
+xgboost>=2.0

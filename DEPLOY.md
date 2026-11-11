@@ -1,5 +1,8 @@
 # Deploying to EC2
 
+**Live endpoint:** [http://readmission.duckdns.org:8000](http://readmission.duckdns.org:8000)
+— stable across stop/start cycles (section 7 keeps the name synced).
+
 The container built by `Dockerfile` runs the same API locally and on AWS.
 Nothing changes except `--host 0.0.0.0` and an open port.
 
@@ -116,6 +119,48 @@ docker logs -f api                # follow the service
 aws ec2 stop-instances   --instance-ids i-0...    # stop billing (Elastic IP stays)
 aws ec2 start-instances  --instance-ids i-0...    # before the interview
 ```
+
+## 7. Stable name — DuckDNS (free, survives IP changes)
+
+Without this, every stop/start changes the public IP and the link you send an
+interviewer breaks. The same pattern as `peds-detect.duckdns.org`:
+a systemd timer asks DuckDNS to repoint `<name>.duckdns.org` at this box's
+current public IP at every boot and every 5 minutes.
+
+```bash
+# from your machine — ship the updater (copied from pedestrian-detection/deploy)
+scp -i AI-LLM.pem -r deploy ec2-user@<PUBLIC_IP>:~/deploy
+
+# on the box — install the updater (token stays in /etc/duckdns/config, mode 600)
+cd ~/deploy
+sudo ./duckdns-setup.sh readmission <YOUR_DUCKDNS_TOKEN>
+systemctl list-timers duckdns.timer --no-pager | head -2
+```
+
+Notes:
+
+- The **token never enters git** — it lives only in `/etc/duckdns/config`
+  (root-only) on the box; `duckdns-setup.sh` validates its format
+  (`^[0-9a-fA-F-]{36}$`) before writing it.
+- DuckDNS also **caches TTL 300 s**: after an instance start the new IP is live
+  within ~1–5 minutes, not instantly. Start the box a few minutes early.
+- Verify: `curl http://readmission.duckdns.org:8000/health` from your machine.
+
+## 8. This project's executed run (record)
+
+| Item | Value |
+|---|---|
+| Instance | `i-0bdba43e891c18402` (`AI-LLMOPS`), t3.micro, Amazon Linux 2023, ap-southeast-2 |
+| Key | `AI-LLM.pem` (KeyName `AI-LLM`) — Windows ACL must be exactly one `user:R` line |
+| Image | `readmission-api`, built on-box (~10 min with the 2 GB swap) |
+| Run | `docker run -d --name api --restart unless-stopped -p 8000:8000 --env-file .env readmission-api` |
+| URL | http://readmission.duckdns.org:8000 (DuckDNS, self-syncing) |
+| Cost | instance bills only while running — stop it after the demo |
+
+> **IAM note:** the `admin` user in this account was not allowed
+> `ec2:StartInstances` — the instance was started from the **AWS console**.
+> Grant the user `AmazonEC2FullAccess` (or just Start/Stop) if you want CLI
+> control; without it, use the console to start before a demo.
 
 ---
 

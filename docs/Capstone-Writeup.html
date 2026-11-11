@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<title>Write-up</title><style>
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, sans-serif; color: #16202c; margin: 0; }
+p { margin: 4pt 0; }
+strong { color: #0d3f8f; }
+a { color: #0d3f8f; text-decoration: none; }
+code { font-family: Consolas, "Courier New", monospace; font-size: .92em;
+  background: #eef1f5; padding: 0 3px; border-radius: 2px; }
+ul, ol { margin: 3pt 0; padding-left: 16pt; }
+li { margin: 2pt 0; }
+table { border-collapse: collapse; margin: 5pt 0; font-size: .92em; }
+th { background: #0d3f8f; color: #fff; text-align: left; padding: 3px 7px; font-weight: 600; }
+td { border-bottom: 1px solid #d5dde7; padding: 3px 7px; vertical-align: top; }
+tr:nth-child(even) td { background: #f3f6fb; }
+blockquote { margin: 5pt 0; padding: 4pt 9pt; background: #fff7ea;
+  border-left: 4px solid #e0a83c; color: #5a4200; font-size: .95em; }
+blockquote p { margin: 0; }
+pre { background: #f4f6f9; border: 1px solid #d5dde7; border-radius: 4px;
+  padding: 6pt 8pt; font-family: Consolas, monospace; font-size: .8em;
+  line-height: 1.3; white-space: pre-wrap; margin: 5pt 0; }
+pre code { background: none; padding: 0; }
+h1, h2, h3 { color: #0d3f8f; page-break-after: avoid; }
+hr { border: none; border-top: 1px solid #c9d4e2; margin: 6pt 0; }
+
+@page { size: A4; margin: 9mm 10mm; }
+body { font-size: 8.9pt; line-height: 1.36; }
+h1 { font-size: 15pt; margin: 0 0 2pt; line-height: 1.15; }
+.wu-sub { font-size: 8.8pt; color: #444; margin-bottom: 6pt;
+  padding-bottom: 4pt; border-bottom: 1.5px solid #0d3f8f; }
+.wu-sub strong { color: #0d3f8f; }
+h2 { font-size: 10.2pt; margin: 8pt 0 2.5pt; padding: 3pt 7pt;
+  background: #eaf1fd; border-left: 4px solid #0d3f8f; }
+table { font-size: 8.3pt; margin: 4pt 0; width: 100%; }
+th, td { padding: 2.5px 7px; }
+pre { font-size: 7.5pt; padding: 4pt 6pt; }
+</style></head><body>
+<h1>Hospital Readmission Risk — 30-Day Readmission Prediction with SHAP, Fairness and RAG-Grounded LLM Alerts</h1>
+<div class="wu-sub"><strong>AI Career Compass · Capstone (Healthcare track) · live at http://readmission.duckdns.org:8000 · github.com/pravinkotta/hospital-readmission</strong></div>
+<h2>Problem</h2>
+<p>About 1 in 5 30-day readmissions is considered avoidable, and US hospitals are penalised for them (up to 3% of Medicare payments); one missed readmission costs an estimated <strong>$14–25K</strong>. Knowing <strong>at discharge</strong> who is likely to come back lets a care team spend limited follow-up capacity where it changes outcomes. Because a false alarm costs ~nothing while a miss costs five figures, <strong>accuracy is the wrong headline metric</strong> — the design decision is a recall-weighted operating threshold.</p>
+<h2>Data &amp; method</h2>
+<ul>
+<li><strong>UCI #296</strong>, Diabetes 130-US Hospitals 1999–2008: 101,766 encounters → <strong>99,343 cleaned</strong> (11.39% positive); death/hospice discharges dropped, sparse columns dropped, ICD-9 grouped into 10 chapters.</li>
+<li><strong>Patient-level 70/15/15 split</strong> (never encounter-level) — no patient crosses splits; test set 14,841 encounters / 10,499 patients evaluated once.</li>
+<li><strong>ANN</strong> <code>120→64→32→1</code>, dropout 0.3, class-weighted BCE, early stopping; <strong>threshold tuned on validation</strong> (0.57, not 0.5).</li>
+<li>One fitted preprocessor artefact shared by training, API and baseline — training/serving skew impossible by construction.</li>
+</ul>
+<h2>Results (held-out test set)</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">ANN</th>
+<th style="text-align: right;">XGBoost baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ROC-AUC</td>
+<td style="text-align: right;">0.6754</td>
+<td style="text-align: right;">0.6685</td>
+</tr>
+<tr>
+<td>PR-AUC (baseline 0.1179)</td>
+<td style="text-align: right;">0.2319</td>
+<td style="text-align: right;">0.2326</td>
+</tr>
+<tr>
+<td>Recall @ tuned threshold</td>
+<td style="text-align: right;">0.4377 (was 0.35 @ 0.5)</td>
+<td style="text-align: right;">0.4377</td>
+</tr>
+<tr>
+<td>F1</td>
+<td style="text-align: right;">0.2862</td>
+<td style="text-align: right;">0.2861</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Honest verdict:</strong> statistical tie — the ANN does not outperform gradient boosting on 100K tabular rows; it is kept for its <strong>SHAP explainability path</strong>. Accuracy 0.74 sits below the 0.88 majority baseline <em>by design</em> (an 11% positive class makes accuracy meaningless).</p>
+<h2>GenAI layer — RAG, not vibes</h2>
+<p><code>ANN → SHAP → RAG → LLM</code>: AHRQ Re-Engineered Discharge toolkit (4 documents) chunked <strong>512 tokens / 50 overlap</strong>, embedded with <code>text-embedding-3-small</code>, indexed in <strong>Chroma</strong> (38 chunks, cosine); the top-<strong>5</strong> chunks retrieved per patient are handed to <code>gpt-4o-mini</code> as <code>[S1]…[S5]</code>. The system prompt forces <strong>five sections</strong> — risk summary · model reasons · suggested actions (each citing a chunk) · <strong>Sources with URLs</strong> · caveat — and requires <em>"insufficient guidance"</em> when no chunk supports a suggestion. <strong>Fail-loud:</strong> missing API key or missing index stops the run with instructions, before any OpenAI call.</p>
+<h2>Governance, serving, MLOps</h2>
+<ul>
+<li><strong>Fairlearn</strong> audit: largest disparity = age (Δ 0.294 DP / 0.556 EO) — recorded with caveats; <strong>Evidently</strong> PSI drift writes a <code>recommend_retrain</code> flag that is <em>recorded, never auto-executed</em> (EU AI Act Art. 14).</li>
+<li><strong>GOVERNANCE.md</strong> maps EU AI Act Art. 10/11/13/14/15 to files; every <code>/predict</code> response carries <code>requires_human_review</code>.</li>
+<li><strong>FastAPI</strong> (<code>/health</code> <code>/cohort/sample</code> <code>/predict</code> <code>/alert</code> with <code>X-API-Key</code>, constant-time compare) → <strong>Docker</strong> → <strong>EC2 t3.micro</strong> with <code>--restart unless-stopped</code> and a self-syncing <strong>DuckDNS</strong> name; <strong>28 offline tests</strong> in GitHub Actions CI re-train and verify metrics on every push.</li>
+</ul>
+<p><strong>Limitations (stated, not hidden):</strong> AUC 0.675 = triage aid, not a decision-maker; data is 1999–2008; no prospective validation; SHAP explains the model, not causality.</p>
+</body></html>

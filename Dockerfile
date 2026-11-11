@@ -19,9 +19,12 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # artefacts (model, preprocessor, SHAP background, metrics) and the cleaned
-# cohort the API serves are committed on purpose — the image needs no training
+# cohort the API serves are committed on purpose — the image needs no training.
+# artifacts/chroma carries the guideline RAG index; guidelines/ is the source
+# corpus it was built from (python -m src.rag --build re-creates it on-box).
 COPY src/ ./src/
 COPY artifacts/ ./artifacts/
+COPY guidelines/ ./guidelines/
 COPY data/diabetic_data.csv data/IDS_mapping.csv ./data/
 
 EXPOSE 8000

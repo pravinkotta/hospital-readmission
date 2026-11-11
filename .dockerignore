@@ -15,6 +15,9 @@ tests/
 scripts/
 docs/
 *.md
+# ...except the guideline corpus: the RAG index's source, so the image can
+# rebuild it on-box (python -m src.rag --build) if the index is ever missing.
+!guidelines/*.md
 data/*.zip
 artifacts/drift_report.html
 

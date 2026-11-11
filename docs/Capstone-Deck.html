@@ -1,0 +1,246 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<title>Capstone deck</title><style>
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, sans-serif; color: #16202c; margin: 0; }
+p { margin: 4pt 0; }
+strong { color: #0d3f8f; }
+a { color: #0d3f8f; text-decoration: none; }
+code { font-family: Consolas, "Courier New", monospace; font-size: .92em;
+  background: #eef1f5; padding: 0 3px; border-radius: 2px; }
+ul, ol { margin: 3pt 0; padding-left: 16pt; }
+li { margin: 2pt 0; }
+table { border-collapse: collapse; margin: 5pt 0; font-size: .92em; }
+th { background: #0d3f8f; color: #fff; text-align: left; padding: 3px 7px; font-weight: 600; }
+td { border-bottom: 1px solid #d5dde7; padding: 3px 7px; vertical-align: top; }
+tr:nth-child(even) td { background: #f3f6fb; }
+blockquote { margin: 5pt 0; padding: 4pt 9pt; background: #fff7ea;
+  border-left: 4px solid #e0a83c; color: #5a4200; font-size: .95em; }
+blockquote p { margin: 0; }
+pre { background: #f4f6f9; border: 1px solid #d5dde7; border-radius: 4px;
+  padding: 6pt 8pt; font-family: Consolas, monospace; font-size: .8em;
+  line-height: 1.3; white-space: pre-wrap; margin: 5pt 0; }
+pre code { background: none; padding: 0; }
+h1, h2, h3 { color: #0d3f8f; page-break-after: avoid; }
+hr { border: none; border-top: 1px solid #c9d4e2; margin: 6pt 0; }
+
+@page { size: 297mm 167mm; margin: 0; }
+body { font-size: 16.5pt; line-height: 1.38; }
+.slide { width: 297mm; height: 167mm; padding: 13mm 17mm 12mm;
+  page-break-after: always; overflow: hidden; position: relative; }
+.slide:last-child { page-break-after: auto; }
+.slide h1 { font-size: 33pt; margin: 0 0 3mm; line-height: 1.1;
+  border-bottom: 2.2mm solid #0d3f8f; padding-bottom: 3mm; }
+.slide h2 { font-size: 18pt; color: #333; font-weight: normal; margin: 0 0 5mm; }
+.slide h3 { font-size: 17pt; color: #0d3f8f; margin: 5mm 0 2mm; }
+.slide li { margin: 2.4pt 0; }
+.slide table { font-size: 14.5pt; }
+.slide th, .slide td { padding: 4px 12px; }
+.slide pre { font-size: 12.5pt; }
+.slide .foot { position: absolute; bottom: 7mm; left: 17mm; right: 17mm;
+  font-size: 11pt; color: #7b8794; border-top: 1px solid #d5dde7;
+  padding-top: 2.5mm; display: flex; justify-content: space-between; }
+/* title slide */
+.slide.title-slide { display: flex; flex-direction: column; justify-content: center;
+  text-align: left; background: linear-gradient(135deg, #f2f7ff 0%, #ffffff 60%); }
+.slide.title-slide h1 { font-size: 44pt; border: none; margin-bottom: 2mm; }
+.slide.title-slide h2 { font-size: 21pt; color: #0d3f8f; margin-bottom: 9mm; }
+.slide.title-slide li { font-size: 17pt; margin: 3.5pt 0; }
+</style></head><body>
+<section class="slide title-slide"><h1>Hospital Readmission Risk</h1>
+<h2>30-day readmission prediction — ANN + SHAP + fair + RAG-grounded LLM alerts</h2>
+<ul>
+<li><strong>AI Career Compass · Capstone · Healthcare track</strong></li>
+<li>Dataset: UCI #296 — 101,766 hospital encounters</li>
+<li><strong>Live API:</strong> http://readmission.duckdns.org:8000</li>
+<li><strong>Code:</strong> github.com/pravinkotta/hospital-readmission</li>
+</ul><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>1 / 10</span></div></section><section class="slide"><h1>The problem — and why accuracy is wrong</h1>
+<h2>Misses cost five figures, false alarms cost nothing</h2>
+<ul>
+<li>~<strong>1 in 5</strong> 30-day readmissions considered avoidable</li>
+<li>HRRP penalty: up to <strong>3% of Medicare payments</strong> withheld</li>
+<li>One missed readmission: <strong>$14–25K</strong> + patient harm</li>
+<li>Positive class = <strong>11.4%</strong> → "nobody is readmitted" scores <strong>88.2% accuracy</strong> and is clinically useless</li>
+</ul>
+<p><strong>Design consequence:</strong> choose the operating threshold for <strong>recall-weighted F1 on validation</strong>, not accuracy at 0.5</p><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>2 / 10</span></div></section><section class="slide"><h1>Data &amp; leakage controls</h1>
+<h2>101,766 → 99,343 encounters, cleaned with reasons</h2>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target = <code>readmitted &lt;30</code></td>
+<td>the clinical question</td>
+</tr>
+<tr>
+<td>−2,423 death/hospice discharges</td>
+<td>they cannot be readmitted (leakage)</td>
+</tr>
+<tr>
+<td>drop <code>weight</code> 96.9% missing etc.</td>
+<td>too sparse to impute honestly</td>
+</tr>
+<tr>
+<td>ICD-9 → 10 chapters</td>
+<td>thousands of near-empty levels</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Patient-level 70/15/15 split</strong> — same person never crosses splits</li>
+<li>One fitted <code>preprocessor.joblib</code> shared by train / API / baseline → <strong>no training-serving skew by construction</strong></li>
+</ul><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>3 / 10</span></div></section><section class="slide"><h1>Model &amp; threshold</h1>
+<h2>ANN 120 → 64 → 32 → 1 (9,857 parameters)</h2>
+<ul>
+<li>Class-weighted <code>BCEWithLogitsLoss</code>, dropout 0.3, early stopping (22 epochs, ~40 s CPU)</li>
+<li><strong>Threshold tuned on validation: 0.57</strong> → recall <strong>0.35 → 0.44</strong>, test set touched once</li>
+<li>Test: <strong>ROC-AUC 0.6754 · PR-AUC 0.2319</strong> (vs 0.1179 baseline) · F1 0.2862</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">predicted not-readmitted</th>
+<th style="text-align: right;">predicted readmitted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>actual not-readmitted</td>
+<td style="text-align: right;">10,255</td>
+<td style="text-align: right;">2,836</td>
+</tr>
+<tr>
+<td>actual readmitted</td>
+<td style="text-align: right;">984</td>
+<td style="text-align: right;"><strong>766 caught</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Read as:</strong> a <em>triage aid</em> ranking the 14.8k test patients — not a clinical decision-maker</li>
+</ul><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>4 / 10</span></div></section><section class="slide"><h1>Does the ANN beat gradient boosting?</h1>
+<h2>Measured on identical footing — <code>python -m src.baseline</code></h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">ANN</th>
+<th style="text-align: right;">XGBoost</th>
+<th style="text-align: right;">Δ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ROC-AUC</td>
+<td style="text-align: right;"><strong>0.6754</strong></td>
+<td style="text-align: right;">0.6685</td>
+<td style="text-align: right;">+0.0069</td>
+</tr>
+<tr>
+<td>PR-AUC</td>
+<td style="text-align: right;">0.2319</td>
+<td style="text-align: right;"><strong>0.2326</strong></td>
+<td style="text-align: right;">−0.0007</td>
+</tr>
+<tr>
+<td>Recall</td>
+<td style="text-align: right;">0.4377</td>
+<td style="text-align: right;">0.4377</td>
+<td style="text-align: right;">0.0000</td>
+</tr>
+<tr>
+<td>F1</td>
+<td style="text-align: right;">0.2862</td>
+<td style="text-align: right;">0.2861</td>
+<td style="text-align: right;">+0.0001</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Same split · same preprocessor · same validation-tuned threshold · same metrics code</li>
+<li><strong>Verdict: statistical tie</strong> — the ANN does not win on ~100K tabular rows</li>
+<li><strong>Why keep the ANN?</strong> the SHAP explainability path — and saying so honestly <em>is</em> the interview answer</li>
+</ul><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>5 / 10</span></div></section><section class="slide"><h1>Explainability — SHAP that actually adds up</h1>
+<h2>Global drivers → per-patient waterfall → log-odds honesty</h2>
+<ul>
+<li><strong>Global:</strong> prior inpatient visits · discharge destination · diagnoses count · length of stay · circulatory diagnosis</li>
+<li><strong>Per patient:</strong> waterfall baseline logit → model logit, ~10 ms, returned by the API</li>
+<li><strong>The gotcha:</strong> wrapping output in a sigmoid broke DeepSHAP's additivity check (diff 0.25 vs 0.01) → silently wrong attributions. The explainer targets <strong>log-odds</strong>, asserted at runtime:</li>
+</ul>
+<blockquote>
+<p>additivity check passed | sum(SHAP) + baseline = 3.2050 vs logit = 3.2050</p>
+</blockquote>
+<ul>
+<li>SHAP = what moved <em>this model's</em> score, <strong>not</strong> causality — stated in README + prompt</li>
+</ul><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>6 / 10</span></div></section><section class="slide"><h1>GenAI layer — RAG, not vibes</h1>
+<h2>ANN → SHAP → RAG → LLM, with citations enforced</h2>
+<pre><code class="language-text">guidelines/ (AHRQ RED toolkit, 4 docs)
+   │ 512 tokens / 50 overlap → text-embedding-3-small
+   ▼
+artifacts/chroma  (38 chunks, cosine)
+   │ query = risk band + diagnosis + discharge context  → top-5
+   ▼
+gpt-4o-mini  →  5 sections: risk · model reasons · actions [S1]… · Sources · caveat
+</code></pre>
+<ul>
+<li>Every suggested action must <strong>cite a retrieved chunk</strong>; unsupported → <em>"insufficient guidance"</em></li>
+<li><code>## Sources</code> lists exact documents + URLs (no placeholders)</li>
+<li><strong>Fail loud:</strong> missing key <em>or</em> missing index exits with instructions <strong>before</strong> any OpenAI call · <code>--no-rag</code> opt-out recorded in <code>alerts.json</code></li>
+</ul><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>7 / 10</span></div></section><section class="slide"><h1>Governance — fairness, drift, human in the loop</h1>
+<h2>EU AI Act Art. 10/11/13/14/15 mapped to files (GOVERNANCE.md)</h2>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th style="text-align: right;">Demographic parity Δ</th>
+<th style="text-align: right;">Equalised odds Δ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>race</td>
+<td style="text-align: right;">0.1272</td>
+<td style="text-align: right;">0.3500</td>
+</tr>
+<tr>
+<td>gender</td>
+<td style="text-align: right;">0.0203</td>
+<td style="text-align: right;">0.0203</td>
+</tr>
+<tr>
+<td><strong>age</strong></td>
+<td style="text-align: right;"><strong>0.2943</strong></td>
+<td style="text-align: right;"><strong>0.5556</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Age = largest disparity</strong> — recorded with caveats (observations, not proof)</li>
+<li>Evidently PSI drift → <code>recommend_retrain</code> flag: <strong>recorded, never auto-executed</strong> (Art. 14)</li>
+<li>Every response carries <strong><code>requires_human_review</code></strong> — nothing here acts on a patient</li>
+<li><code>/alert</code> spends API credit → <code>X-API-Key</code> + constant-time compare + 503 if unconfigured</li>
+</ul><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>8 / 10</span></div></section><section class="slide"><h1>Ship it — MLOps &amp; live demo</h1>
+<h2>FastAPI → Docker → EC2 → DuckDNS</h2>
+<ul>
+<li><strong>Endpoints:</strong> <code>/health</code> (reports RAG status) · <code>/cohort/sample</code> · <code>/predict</code> (SHAP on demand) · <code>/alert</code> (RAG-grounded, key-gated)</li>
+<li><strong>Docker</strong> 3.3 GB CPU image ships artefacts <strong>incl. the Chroma index</strong>; <code>.env</code> injected at run time, never in a layer</li>
+<li><strong>EC2 t3.micro</strong>, Amazon Linux 2023, 2 GB swap, <code>--restart unless-stopped</code></li>
+<li><strong>Stable URL:</strong> <code>readmission.duckdns.org</code> — systemd timer re-syncs every 5 min; stop/start never changes the link</li>
+<li><strong>CI:</strong> GitHub Actions re-trains from raw CSV → audit → <strong>28 offline tests</strong> (RAG included: chunking, fake-embedder index round-trip, <code>[Sx]</code> contract, fail-loud)</li>
+</ul>
+<p><strong>Live now:</strong> http://readmission.duckdns.org:8000/docs</p><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>9 / 10</span></div></section><section class="slide"><h1>Takeaways</h1>
+<h2>Honest results, every layer</h2>
+<ul>
+<li><strong>AUC 0.675</strong> = useful ranking, not a clinical instrument — thresholds, not accuracy, carry the decision</li>
+<li><strong>ANN ≈ XGBoost (tie)</strong> — kept for SHAP, not metrics; comparison committed as <code>baseline.json</code></li>
+<li><strong>RAG grounds the LLM:</strong> real AHRQ documents, [S1] citations, fail-loud without an index</li>
+<li><strong>Fairness measured</strong> (age gap found), <strong>drift monitored</strong>, <strong>human always in the loop</strong></li>
+</ul>
+<h3>Next</h3>
+<p>calibration · hybrid reranking (BM25 + vector) · more guideline sources · TLS/ALB · recent external validation</p>
+<p><strong>Links:</strong> live API <code>readmission.duckdns.org:8000</code> · <code>github.com/pravinkotta/hospital-readmission</code> · interactive report in repo</p><div class="foot"><span>Hospital Readmission Risk — AI Career Compass capstone</span><span>10 / 10</span></div></section>
+</body></html>

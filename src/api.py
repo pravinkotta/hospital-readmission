@@ -39,7 +39,7 @@ import torch
 from fastapi import FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from . import config, explain
+from . import config, explain, rag
 from .alert import (
     build_messages,
     call_openai,
@@ -51,6 +51,7 @@ from .alert import (
     load_artifacts,
     load_id_labels,
     resolve_api_key,
+    retrieval_query,
     risk_band,
 )
 from .data import load_clean
@@ -199,6 +200,16 @@ def openai_configured() -> bool:
     return bool(find_api_key())
 
 
+@lru_cache(maxsize=1)
+def rag_status() -> str:
+    """One-time check of the guideline index, reported by /health."""
+    try:
+        rag.require_index()
+    except SystemExit as error:
+        return f"unavailable: {str(error).splitlines()[0]}"
+    return f"enabled ({rag.COLLECTION}, top-{config.RAG_TOP_K})"
+
+
 @app.get("/health")
 def health() -> dict:
     state = get_state()
@@ -210,6 +221,7 @@ def health() -> dict:
         "cohort_rows": len(state.cohort),
         "alert_endpoint": "enabled" if alert_api_key() else "disabled (ALERT_API_KEY not set)",
         "openai_key_configured": openai_configured(),
+        "rag": rag_status(),
     }
 
 
@@ -317,6 +329,19 @@ def alert(request: ScoreRequest, x_api_key: str | None = Header(default=None)) -
         "facts": encounter_facts(row, state.id_labels),
         "drivers": drivers,
     }
+
+    # Guideline retrieval: fail loud (503) instead of writing an alert that
+    # claims to be grounded but had nothing to ground on.
+    try:
+        rag.require_index()
+    except SystemExit as error:
+        raise HTTPException(
+            503, f"RAG index unavailable on this server: {str(error).splitlines()[0]}"
+        ) from error
+    query = retrieval_query(case)
+    case["retrieval_query"] = query
+    case["guideline_chunks"] = rag.retrieve(query, k=config.RAG_TOP_K)
+
     model_name = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
     try:
         text, usage = call_openai(build_messages(case), model_name)
@@ -326,5 +351,19 @@ def alert(request: ScoreRequest, x_api_key: str | None = Header(default=None)) -
     return {**{k: case[k] for k in ("patient_nbr", "probability", "risk_band", "threshold", "flagged")},
             "requires_human_review": case["flagged"],
             "source": f"openai:{model_name}",
+            "retrieval": {
+                "collection": rag.COLLECTION,
+                "top_k": config.RAG_TOP_K,
+                "query": query,
+                "chunks": [
+                    {
+                        "label": f"[S{chunk['rank']}]",
+                        "document": chunk["title"],
+                        "url": chunk["url"],
+                        "score": chunk["score"],
+                    }
+                    for chunk in case["guideline_chunks"]
+                ],
+            },
             "usage": usage,
             "alert_markdown": text}

@@ -1,20 +1,24 @@
 """GenAI discharge alert — the last stage of the pipeline.
 
-    Data -> Feature Engineering -> ANN -> SHAP -> **GenAI Alert**
+    Data -> Feature Engineering -> ANN -> SHAP -> **RAG + GenAI Alert**
 
     python -m src.alert                  # 3 highest-risk held-out patients
     python -m src.alert --n 1            # just the top one
     python -m src.alert --patient 123456 # a specific patient from the test split
+    python -m src.alert --no-rag         # skip guideline retrieval
 
 Nothing here retrains anything: the trained artefacts are loaded from
 ``artifacts/``, patients are scored on the **same held-out test split** used for
 the README metrics, and each patient's SHAP drivers are handed to an OpenAI
-model together with the encounter facts. The model writes the alert; it never
-sees or invents the numbers — every fact in the prompt comes from the dataset.
+model together with the encounter facts **and the top-5 chunks retrieved from
+discharge-guideline documents** (``src.rag``). The model writes the alert; it
+never sees or invents the numbers — every fact in the prompt comes from the
+dataset, and every suggested action must cite a retrieved chunk as [S1].
 
 This stage **requires** ``OPENAI_API_KEY`` — there is no template fallback. A
-missing key or a failed API call stops the run with a non-zero exit code
-rather than writing an alert that no LLM produced.
+missing key, a missing RAG index (unless ``--no-rag``), or a failed API call
+stops the run with a non-zero exit code rather than writing an alert that no
+LLM produced.
 """
 
 from __future__ import annotations
@@ -33,7 +37,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from . import config, explain, preprocess
+from . import config, explain, preprocess, rag
 from .data import load_clean
 from .model import ReadmissionMLP
 from .train import patient_split
@@ -85,22 +89,32 @@ NUMERIC_FEATURES = set(config.NUMERIC_COLS)
 SYSTEM_PROMPT = """\
 You are a clinical decision-support writer producing a discharge alert for a
 hospital transition-of-care team. You are given structured facts about one
-encounter, the model's predicted 30-day readmission risk, and the SHAP
-features that drove that prediction (SHAP values are in log-odds).
+encounter, the model's predicted 30-day readmission risk, the SHAP features
+that drove that prediction (SHAP values are in log-odds), and retrieved chunks
+from AHRQ discharge-guideline documents, labelled [S1], [S2], ...
 
 Rules:
 - Use ONLY the facts provided. Never invent symptoms, results, medications,
   vital signs, or history that is not in the input.
 - SHAP contributions explain the model's score; describe them as reasons the
   *model* flagged the patient, not as proven causes of readmission.
+- Every suggested discharge action must be grounded in a retrieved chunk and
+  cite it inline as [S1] (or [S2], ...). If no retrieved chunk supports a
+  suggestion, write "insufficient guidance" instead of suggesting one.
 - Write for a discharge nurse: concrete, specific, non-alarmist.
-- Output markdown with exactly these four sections, and nothing else:
+- Output markdown with exactly these five sections, and nothing else:
   ## Risk summary
   ## Why the model flagged this patient
   ## Suggested discharge actions
+  ## Sources
   ## Caveat
-- 150-220 words total. The Caveat section must state that this is a
-  model-generated draft for clinician review, not medical advice.
+- 160-240 words total (the Sources list does not count toward the total).
+  The Caveat section must state that this is a model-generated draft for
+  clinician review, not medical advice. The Sources section must contain
+  exactly the chunk labels cited in "Suggested discharge actions", one per
+  line, formatted as: - [S1] document title — url
+  Copy each chunk's document title and url verbatim from the input; never
+  write a placeholder instead of the real URL.
 """
 
 
@@ -307,6 +321,22 @@ def select_cases(
 # -------------------------------------------------------------------- prompt
 
 
+def retrieval_query(case: dict) -> str:
+    """Query the guideline index for this case.
+
+    The corpus is generic discharge guidance (not patient-specific), so the
+    query carries the risk band, primary diagnosis and discharge context —
+    enough to bias retrieval toward the right part of the toolkit.
+    """
+    facts = case["facts"]
+    return (
+        f"{case['risk_band']} 30-day readmission risk: discharge planning and "
+        f"post-discharge follow-up for a patient with primary diagnosis "
+        f"{facts['primary_diagnosis']}, {facts['prior_inpatient_visits']} prior "
+        f"inpatient visits, discharged to {facts['discharge_destination']}"
+    )
+
+
 def build_messages(case: dict) -> list[dict]:
     payload = {
         "predicted_30_day_readmission_probability": case["probability"],
@@ -319,9 +349,20 @@ def build_messages(case: dict) -> list[dict]:
             {"feature": d["feature"], "description": d["description"], "contribution_log_odds": round(d["contribution"], 4)}
             for d in case["drivers"]
         ],
+        "retrieved_guideline_chunks": [
+            {
+                "label": f"[S{chunk['rank']}]",
+                "document": chunk["title"],
+                "url": chunk["url"],
+                "text": chunk["text"],
+            }
+            for chunk in case.get("guideline_chunks", [])
+        ],
     }
     user = (
-        "Write the discharge alert for this encounter.\n\n"
+        "Write the discharge alert for this encounter. The retrieved "
+        "guideline chunks are the only permitted source for suggested "
+        "actions; cite them as [S1], [S2], ... where used.\n\n"
         + json.dumps(payload, indent=2, default=str)
     )
     return [
@@ -432,21 +473,36 @@ def resolve_api_key() -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Generate SHAP-grounded discharge alerts via the OpenAI API"
+        description="Generate SHAP- and RAG-grounded discharge alerts via the OpenAI API"
     )
     parser.add_argument("--n", type=int, default=3, help="number of highest-risk patients (default 3)")
     parser.add_argument("--patient", type=int, action="append", help="specific patient_nbr (repeatable)")
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"OpenAI model (default {DEFAULT_MODEL})")
+    parser.add_argument(
+        "--no-rag",
+        action="store_true",
+        help="skip guideline retrieval (alerts lose [S1] grounding and ## Sources)",
+    )
     args = parser.parse_args()
 
     # Fail fast, before the data load, so a missing key costs no time.
     resolve_api_key()
+
+    # Fail loud if the RAG index was never built — before any OpenAI call.
+    if not args.no_rag:
+        rag.require_index()
 
     stack = load_artifacts()
     test = held_out_frame(load_clean())
     cases = select_cases(test, stack, args.n, args.patient)
     if not cases:
         raise SystemExit("no cases selected")
+
+    if not args.no_rag:
+        for case in cases:
+            query = retrieval_query(case)
+            case["retrieval_query"] = query
+            case["guideline_chunks"] = rag.retrieve(query, k=config.RAG_TOP_K)
 
     index = []
     for case in cases:
@@ -467,6 +523,19 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": index[0]["source"],
         "threshold": index[0]["threshold"],
+        "rag": (
+            {
+                "enabled": False,
+                "note": "--no-rag: guidelines were not retrieved for this run",
+            }
+            if args.no_rag
+            else {
+                "enabled": True,
+                "collection": rag.COLLECTION,
+                "top_k": config.RAG_TOP_K,
+                "index": str(config.CHROMA_DIR),
+            }
+        ),
         "cases": index,
     }
     target = config.ARTIFACT_DIR / "alerts.json"
