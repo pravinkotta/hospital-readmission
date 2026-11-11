@@ -5,6 +5,7 @@ import html
 import os
 import re
 import subprocess
+import sys
 import urllib.parse
 
 import markdown
@@ -49,6 +50,22 @@ h2 { font-size: 10.2pt; margin: 8pt 0 2.5pt; padding: 3pt 7pt;
 table { font-size: 8.3pt; margin: 4pt 0; width: 100%; }
 th, td { padding: 2.5px 7px; }
 pre { font-size: 7.5pt; padding: 4pt 6pt; }
+"""
+
+REPORT_CSS = """
+@page { size: A4; margin: 12mm 11mm; }
+body { font-size: 9.2pt; line-height: 1.42; }
+h1 { font-size: 17pt; margin: 0 0 2pt; line-height: 1.15; }
+.rp-sub { font-size: 8.8pt; color: #444; margin-bottom: 7pt; padding-bottom: 4pt;
+  border-bottom: 1.5px solid #0d3f8f; }
+h2 { font-size: 11.5pt; margin: 11pt 0 3pt; padding: 3pt 7pt; background: #eaf1fd;
+  border-left: 4px solid #0d3f8f; page-break-after: avoid; }
+h3 { font-size: 9.8pt; margin: 8pt 0 2pt; color: #0d3f8f; page-break-after: avoid; }
+table { font-size: 8.4pt; margin: 5pt 0; width: 100%; }
+th, td { padding: 3px 6px; }
+pre { font-size: 7.6pt; }
+li { margin: 1.5pt 0; }
+p { margin: 3pt 0; }
 """
 
 DECK_CSS = """
@@ -166,6 +183,34 @@ def build_deck() -> None:
         print("WARNING: slide count mismatch — check for overflow")
 
 
+def build_report() -> None:
+    src = os.path.join(BASE, "project-report.md")
+    out = os.path.join(BASE, "..", "Project-Report.pdf")
+    raw = open(src, encoding="utf-8").read()
+    header, rest = raw.split("\n---\n", 1)
+    lines = [line for line in header.strip().split("\n") if line.strip()]
+    title = lines[0].lstrip("# ").strip()
+    sub = "<br>".join(to_html(line) for line in lines[1:])
+    sub = re.sub(r"</?p>", "", sub)
+    body = re.sub(r"^\s*---\s*$", "", rest, flags=re.M)  # drop section rules
+    page = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<title>Project report</title><style>{BASE_CSS}{REPORT_CSS}</style></head><body>
+<h1>{html.escape(title)}</h1>
+<div class="rp-sub">{sub}</div>
+{to_html(body)}
+</body></html>"""
+    render_pdf(page, os.path.abspath(out))
+    n = page_count(os.path.abspath(out))
+    print(f"report: {n} pages -> {os.path.abspath(out)}")
+    if n < 8:
+        print("WARNING: report looks too short — check for render errors")
+
+
 if __name__ == "__main__":
-    build_writeup()
-    build_deck()
+    which = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if which in ("all", "writeup"):
+        build_writeup()
+    if which in ("all", "deck"):
+        build_deck()
+    if which in ("all", "report"):
+        build_report()

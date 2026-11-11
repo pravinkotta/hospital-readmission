@@ -1,0 +1,466 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<title>Project report</title><style>
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, sans-serif; color: #16202c; margin: 0; }
+p { margin: 4pt 0; }
+strong { color: #0d3f8f; }
+a { color: #0d3f8f; text-decoration: none; }
+code { font-family: Consolas, "Courier New", monospace; font-size: .92em;
+  background: #eef1f5; padding: 0 3px; border-radius: 2px; }
+ul, ol { margin: 3pt 0; padding-left: 16pt; }
+li { margin: 2pt 0; }
+table { border-collapse: collapse; margin: 5pt 0; font-size: .92em; }
+th { background: #0d3f8f; color: #fff; text-align: left; padding: 3px 7px; font-weight: 600; }
+td { border-bottom: 1px solid #d5dde7; padding: 3px 7px; vertical-align: top; }
+tr:nth-child(even) td { background: #f3f6fb; }
+blockquote { margin: 5pt 0; padding: 4pt 9pt; background: #fff7ea;
+  border-left: 4px solid #e0a83c; color: #5a4200; font-size: .95em; }
+blockquote p { margin: 0; }
+pre { background: #f4f6f9; border: 1px solid #d5dde7; border-radius: 4px;
+  padding: 6pt 8pt; font-family: Consolas, monospace; font-size: .8em;
+  line-height: 1.3; white-space: pre-wrap; margin: 5pt 0; }
+pre code { background: none; padding: 0; }
+h1, h2, h3 { color: #0d3f8f; page-break-after: avoid; }
+hr { border: none; border-top: 1px solid #c9d4e2; margin: 6pt 0; }
+
+@page { size: A4; margin: 12mm 11mm; }
+body { font-size: 9.2pt; line-height: 1.42; }
+h1 { font-size: 17pt; margin: 0 0 2pt; line-height: 1.15; }
+.rp-sub { font-size: 8.8pt; color: #444; margin-bottom: 7pt; padding-bottom: 4pt;
+  border-bottom: 1.5px solid #0d3f8f; }
+h2 { font-size: 11.5pt; margin: 11pt 0 3pt; padding: 3pt 7pt; background: #eaf1fd;
+  border-left: 4px solid #0d3f8f; page-break-after: avoid; }
+h3 { font-size: 9.8pt; margin: 8pt 0 2pt; color: #0d3f8f; page-break-after: avoid; }
+table { font-size: 8.4pt; margin: 5pt 0; width: 100%; }
+th, td { padding: 3px 6px; }
+pre { font-size: 7.6pt; }
+li { margin: 1.5pt 0; }
+p { margin: 3pt 0; }
+</style></head><body>
+<h1>Hospital Readmission Capstone — Full Project Report</h1>
+<div class="rp-sub"><strong>Start-to-finish build log: decisions, errors, fixes, and the reasoning behind every tool.</strong><br>Repository: <code>hospital-readmission</code> (7 commits, 2026-10-25 → 2026-11-11) · Tests: <strong>28 passing</strong> · Live: http://readmission.duckdns.org:8000</div>
+<h2>1. What the project is</h2>
+<p>Predict 30-day hospital readmission for diabetic patients from the UCI Diabetes 130-US-Hospitals dataset (100,000 encounters), explain every prediction with SHAP, ground a GenAI discharge alert in real AHRQ guideline text via RAG, and serve the whole pipeline behind an authenticated FastAPI service in Docker on EC2.</p>
+<p><strong>Headline results (held-out test set, n = 14,841, positive rate 0.1179):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>ANN (shipped)</th>
+<th>XGBoost baseline</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ROC-AUC</td>
+<td><strong>0.6754</strong></td>
+<td>0.6685</td>
+<td>Δ +0.0069 — statistical tie</td>
+</tr>
+<tr>
+<td>PR-AUC</td>
+<td>0.2319</td>
+<td><strong>0.2326</strong></td>
+<td>majority baseline = 0.1179</td>
+</tr>
+<tr>
+<td>Recall @ tuned threshold</td>
+<td>0.4377</td>
+<td>0.4377</td>
+<td>0.35 at threshold 0.5 → <strong>0.44</strong> after tuning</td>
+</tr>
+<tr>
+<td>F1 @ tuned threshold</td>
+<td>0.2862</td>
+<td>0.2861</td>
+<td>threshold tuned on <strong>validation</strong>, test touched once</td>
+</tr>
+<tr>
+<td>Threshold</td>
+<td>0.57</td>
+<td>0.54</td>
+<td>F1-max sweep on validation</td>
+</tr>
+</tbody>
+</table>
+<p>The honest framing: <strong>accuracy 0.7426 is <em>worse</em> than always predicting "no" (0.8821)</strong> — on an 11.8% positive rate, accuracy is a vanity metric. The model <em>ranks</em> patients usefully (AUC 0.675) and nearly doubles recall over the default threshold without ever seeing the test labels during tuning.</p>
+<h2>2. Timeline — three phases, three mentor reviews</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Date</th>
+<th>Commits</th>
+<th>What shipped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1 — ML case study</strong></td>
+<td>2026-10-25</td>
+<td><code>bf3db0b</code>, <code>cb529c5</code>, <code>0f464ee</code>, <code>d177370</code></td>
+<td>Data + leakage controls, ANN in pure PyTorch, DeepSHAP on log-odds, notebook, interactive HTML report (threshold explorer, per-patient explainer, SVG charts)</td>
+</tr>
+<tr>
+<td><strong>2 — MLOps + governance</strong></td>
+<td>2026-11-10</td>
+<td><code>1a1daed</code></td>
+<td>FastAPI service, API-key-gated GenAI alert, MLflow tracking/registry, Fairlearn audit, Evidently drift monitor, GitHub Actions CI, Dockerfile, <code>GOVERNANCE.md</code>, <code>DEPLOY.md</code></td>
+</tr>
+<tr>
+<td><strong>3 — RAG + baseline + delivery</strong></td>
+<td>2026-11-11</td>
+<td><code>3dcba3b</code>, <code>561e5e5</code></td>
+<td>Chroma RAG over AHRQ RED toolkit (38 chunks), XGBoost baseline on identical footing, 1-page write-up + 10-slide deck, live EC2 deployment with DuckDNS, Docker image split</td>
+</tr>
+</tbody>
+</table>
+<p>Every phase was driven by a written spec (<code>RCTC.md</code>, constraints C1–C10 plus two amendments) so that, as the spec says, <em>"every decision in the code traces back to a constraint."</em></p>
+<h2>3. Architecture, layer by layer — and why each layer exists</h2>
+<pre><code>raw CSV ──▶ clean/split ──▶ preprocessor ──▶ ANN (PyTorch, CPU) ──▶ threshold
+                │                                    │
+                │ patient-level split,               ▼
+                │ death/hospice excluded        DeepSHAP (log-odds)
+                │                               │
+                │                               ▼
+                │                        Chroma RAG index ──▶ top-5 AHRQ chunks
+                │                               │
+                ▼                               ▼
+        metrics.json ◀── evaluate ──── FastAPI /predict ──── /alert (gpt-4o-mini)
+                │                               │
+        MLflow (SQLite) · Fairlearn · Evidently · audit artefacts
+                │
+        Docker (CPU-only, 1.95 GB) ──▶ GitHub Actions CI ──▶ EC2 t3.micro + DuckDNS
+</code></pre>
+<ol>
+<li><strong>Data layer</strong> — <code>scripts/download_data.py</code> pulls the UCI CSV; cleaning drops 2,423 death/hospice discharges (they <em>cannot</em> be readmitted — that is leakage, not cleaning) and <strong>splits by patient ID</strong>, not by row, so no patient appears in both train and test.</li>
+<li><strong>Model layer</strong> — <code>src/model.py</code> is a small MLP in <strong>pure <code>torch</code></strong>: <code>BCEWithLogitsLoss</code> + <code>pos_weight</code> for imbalance, Adam, gradient clipping, early stopping (patience 6, ≤40 epochs). Full pipeline ≈1 minute on CPU (constraint C4).</li>
+<li><strong>Explainability layer</strong> — <code>src/explain.py</code> runs SHAP <strong>DeepExplainer against the raw log-odds output</strong>, with an additivity assertion at runtime. Global <code>global_shap.json</code> + per-patient waterfalls.</li>
+<li><strong>RAG layer</strong> — <code>src/rag.py</code> chunks 4 AHRQ Re-Engineered Discharge (RED) toolkit documents (512 tokens / 50 overlap, paragraph- then sentence-boundaries), embeds them with <code>text-embedding-3-small</code>, stores 38 chunks in a persistent Chroma index (cosine), and retrieves top-5 at alert time as <code>[S1]…[S5]</code>.</li>
+<li><strong>GenAI layer</strong> — <code>src/alert.py</code> gives the LLM <em>only</em> structured facts: risk, band, SHAP drivers (labelled as reasons the <strong>model</strong> flagged the patient, not proven causes), and the retrieved chunks. Five fixed sections, inline citations, 160–240 words, and a mandatory clinician-review caveat. <strong>No template fallback</strong> — if OpenAI fails, the run fails (502).</li>
+<li><strong>Service layer</strong> — <code>src/api.py</code>: <code>/health</code> (provenance + RAG status), <code>/cohort/sample</code>, <code>/predict</code> (optional SHAP drivers, human-oversight flag on every response), <code>/alert</code> (X-API-Key, constant-time compare, 503 if unconfigured, 503 if the RAG index is missing).</li>
+<li><strong>Tracking &amp; governance</strong> — MLflow run + registry (<code>champion</code> alias), Fairlearn race/gender/age audit, Evidently drift snapshot with a <em>recorded-not-executed</em> retrain trigger, <code>GOVERNANCE.md</code> mapping to EU AI Act Articles 11/13/14.</li>
+<li><strong>Delivery</strong> — CPU-only Docker image (1.95 GB), 28 tests, GitHub Actions CI that <strong>retrains from the raw CSV</strong> and asserts README metrics within ±0.01, deployed on EC2 t3.micro behind a DuckDNS name.</li>
+</ol>
+<h2>4. Why these tools — the decision table</h2>
+<table>
+<thead>
+<tr>
+<th>Choice</th>
+<th>Alternative considered</th>
+<th>Why this one</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PyTorch (pure <code>torch</code>)</strong></td>
+<td>TensorFlow/Keras, scikit-learn MLP</td>
+<td>Constraint C3 (installed stack only) + PyTorch is the research lingua franca; writing the training loop by hand makes early stopping, <code>pos_weight</code> and the log-odds hook explicit instead of hidden behind Keras defaults</td>
+</tr>
+<tr>
+<td><strong>SHAP DeepExplainer</strong></td>
+<td>LIME, Grad-CAM, attention weights</td>
+<td>DeepSHAP is <em>exact</em> for piecewise-linear networks, so attributions are <strong>verifiable</strong> — the additivity assertion makes "explainable" a tested fact, not a claim. LIME is perturbation-based (noisy, model-agnostic overkill); Grad-CAM is for images, not tabular</td>
+</tr>
+<tr>
+<td><strong>Explain log-odds, not probabilities</strong></td>
+<td>probability-space SHAP</td>
+<td>SHAP's additivity identity holds on the pre-sigmoid output; on sigmoid output it failed with max diff <strong>0.25</strong> vs tolerance <strong>0.01</strong> (see Error 1)</td>
+</tr>
+<tr>
+<td><strong>Patient-level split + exclusions</strong></td>
+<td>random row split</td>
+<td>Constraint C5: row splits leak the same patient across train/test and inflate metrics</td>
+</tr>
+<tr>
+<td><strong>PR-AUC + tuned threshold, not accuracy</strong></td>
+<td>accuracy, ROC-AUC alone</td>
+<td>11.8% positive rate makes accuracy meaningless (0.8821 = "always no")</td>
+</tr>
+<tr>
+<td><strong>XGBoost baseline</strong></td>
+<td>ship the ANN alone</td>
+<td>The mentor asked "is the ANN even better?" — same split, same preprocessor, same threshold sweep. Verdict: <strong>statistical tie</strong>; ANN kept for the SHAP path, stated openly in the README</td>
+</tr>
+<tr>
+<td><strong>MLflow + SQLite backend</strong></td>
+<td>plain JSON, W&amp;B, MLflow <code>./mlruns</code> file store</td>
+<td>MLflow 3 put the file store in maintenance mode and the <strong>model registry needs a database</strong>; SQLite is zero-ops. W&amp;B is a SaaS (data-egress + login friction for a portfolio). Tracking is a <em>side channel</em> — <code>metrics.json</code> stays byte-identical so notebook and CLI never fork</td>
+</tr>
+<tr>
+<td><strong>Fairlearn + Evidently</strong></td>
+<td>hand-rolled fairness/drift scripts</td>
+<td>Both are the de-facto standard libraries; hand-rolling would be code I'd have to defend line-by-line instead of citing docs</td>
+</tr>
+<tr>
+<td><strong>FastAPI</strong></td>
+<td>Flask, Django</td>
+<td>Native Pydantic request validation (the API contract <em>is</em> the schema), auto <code>/docs</code> Swagger UI for live demos, <code>async</code> for free</td>
+</tr>
+<tr>
+<td><strong><code>X-API-Key</code> + <code>secrets.compare_digest</code></strong></td>
+<td>no auth, JWT</td>
+<td><code>/alert</code> spends real money per call; constant-time comparison prevents timing attacks; 503 when unconfigured rather than a default key</td>
+</tr>
+<tr>
+<td><strong>Docker CPU wheel (no CUDA)</strong></td>
+<td>default <code>pip install torch</code></td>
+<td>The default pulls <code>nvidia-nccl-cu12</code> (340 MB) → 2.27 GB image → <strong>ENOSPC</strong> on the 8 GB box (Error 9)</td>
+</tr>
+<tr>
+<td><strong>Split <code>requirements-service.txt</code></strong></td>
+<td>one requirements file</td>
+<td>The API imports only ~10 packages; the image must not carry xgboost, MLflow, Evidently, Fairlearn, pytest, the notebook stack</td>
+</tr>
+<tr>
+<td><strong>Chroma <code>PersistentClient</code></strong></td>
+<td>FAISS, pgvector, Pinecone/Weaviate</td>
+<td>Embedded, file-based, zero server to run — right-sized for one box. pgvector = extra Postgres to operate; hosted vector DBs = cost + account + egress for 38 chunks</td>
+</tr>
+<tr>
+<td><strong><code>text-embedding-3-small</code></strong></td>
+<td>local sentence-transformers, <code>ada-002</code></td>
+<td>Cheap, strong, 1536-dim; a local model adds ~90 MB to an already-tight image and slows the build on a micro. <code>ada-002</code> is the older generation for the same price</td>
+</tr>
+<tr>
+<td><strong><code>gpt-4o-mini</code></strong></td>
+<td><code>gpt-4o</code>, local Llama</td>
+<td>The LLM only re-writes facts I already computed — no arithmetic, no lookup. Mini is fast and cheap; the <em>grounding</em> (RAG + fixed sections + citation rule) is what prevents hallucination, not model size</td>
+</tr>
+<tr>
+<td><strong>AHRQ RED toolkit as corpus</strong></td>
+<td>hospital policy PDFs, general discharge advice</td>
+<td>Authoritative, public, US-government evidence on the exact topic (post-discharge transition of care) — and citable URLs for the <code>## Sources</code> section</td>
+</tr>
+<tr>
+<td><strong>EC2 t3.micro + Docker</strong></td>
+<td>HF Spaces, Render, Railway</td>
+<td>The spec asks for a <em>real</em> deployment: security groups, SSH, systemd, swap, restart policies. Managed platforms hide exactly the errors this report documents</td>
+</tr>
+<tr>
+<td><strong>DuckDNS</strong></td>
+<td>Elastic IP, ngrok, Route53</td>
+<td>Elastic IP now costs money when attached to a <em>running</em> instance; ngrok URLs change and look unprofessional; Route53 is paid. DuckDNS = free stable hostname; the box self-corrects its IP via an IMDSv2 systemd timer</td>
+</tr>
+<tr>
+<td><strong>GitHub Actions CI</strong></td>
+<td>local-only tests, pre-commit</td>
+<td>CI <strong>retrains from the raw CSV</strong> and asserts README metrics ±0.01 — the numbers cannot silently rot; also runs a secret scan</td>
+</tr>
+<tr>
+<td><strong>pytest (28 tests)</strong></td>
+<td>no tests / doctest</td>
+<td>Tests are what let me refactor the alert prompt 5 times without fear; RAG tests use a <strong>fake embedder</strong> so CI never needs an OpenAI key</td>
+</tr>
+<tr>
+<td><strong>Edge headless <code>--print-to-pdf</code></strong></td>
+<td>LaTeX, wkhtmltopdf, browser print</td>
+<td>Already installed, deterministic CSS paged media, no TeX Live install — the write-up is verified <em>exactly 1 page</em> and the deck <em>exactly 10 slides</em> by a PyMuPDF page count in the build script</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Error catalogue — every error, root cause, fix, and lesson</h2>
+<h3>Phase 1 — modelling and explainability</h3>
+<p><strong>Error 1 — SHAP additivity failure on sigmoid output (the important one).</strong><br>
+<em>Symptom:</em> DeepExplainer wrapped around <code>sigmoid(logits)</code> produced attributions that failed SHAP's own additivity check: <code>max diff 0.25</code> against tolerance <code>0.01</code> — i.e. <code>Σ SHAP + baseline ≈ 0.25</code> away from the model's actual output.<br>
+<em>Root cause:</em> SHAP's efficiency property (contributions sum to output − expected output) holds on the network's <strong>raw log-odds</strong>; the sigmoid is a nonlinearity that breaks the decomposition DeepSHAP assumes.<br>
+<em>Fix:</em> explain the log-odds head, convert nothing, and <strong>assert additivity at runtime</strong> (<code>sum(SHAP) + baseline = 3.2050 vs logit = 3.2050</code>); the notebook, <code>src/explain.py</code> and README all state this.<br>
+<em>Lesson:</em> a wrong explanation looks exactly like a right one — only the library's own check caught it. Ship the assertion, not just the plot. <strong>Constraint C6 exists because of this error.</strong></p>
+<p><strong>Error 2 — patient-level leakage.</strong><br>
+<em>Symptom:</em> early metrics were suspiciously strong and collapsed under scrutiny.<br>
+<em>Root cause:</em> a random <em>row</em> split puts different encounters of the same patient (<code>patient_nbr</code> is repeated) in both train and test.<br>
+<em>Fix:</em> <code>patient_split</code> partitions on unique patient IDs; the preprocessor is fit on train only; threshold tuned on validation only.<br>
+<em>Lesson:</em> on clinical data, split on the <em>entity</em>, not the row. Leakage is the first thing an interviewer will ask about.</p>
+<p><strong>Error 3 — accuracy as a headline metric on 11.8% positives.</strong><br>
+<em>Symptom:</em> "0.88 accuracy" that was just the majority baseline (0.8821).<br>
+<em>Fix:</em> report ROC-AUC, PR-AUC (baseline 0.1179), precision/recall/F1 at a tuned threshold; README says plainly that accuracy 0.7426 is worse than doing nothing.<br>
+<em>Lesson:</em> choose the metric before the model; on imbalance, accuracy measures the dataset, not the model.</p>
+<p><strong>Error 4 — threshold tuned on the test set (caught in review, not by a test).</strong><br>
+<em>Root cause:</em> the first sweep maximised F1 on the same split we report on — classic test-set contamination.<br>
+<em>Fix:</em> tune on validation, report test <strong>once</strong>; recall moved 0.35 → 0.4377 as a legitimate gain.<br>
+<em>Lesson:</em> write the split policy down (C5) so the review has something to check against.</p>
+<p><strong>Error 5 — <code>metrics.json</code> key order differed between notebook and CLI.</strong><br>
+<em>Symptom:</em> two runs of "the same code" produced files that weren't byte-identical, breaking the "one source of truth" claim (commit <code>0f464ee</code>).<br>
+<em>Root cause:</em> Python dicts preserved insertion order and the two writers inserted context keys differently.<br>
+<em>Fix:</em> write keys in one canonical order in both writers; a test now compares the artefact structure.<br>
+<em>Lesson:</em> if a file is a contract, test its bytes, not just its fields.</p>
+<p><strong>Error 6 — <code>.env</code> "illegal header" parse failure.</strong><br>
+<em>Symptom:</em> the alert stage died before calling OpenAI with a dotenv parse error.<br>
+<em>Root cause:</em> the <code>.env</code> line wasn't in strict <code>KEY=value</code> form (stray quoting/whitespace), which python-dotenv rejects as an illegal header.<br>
+<em>Fix:</em> normalised the file to <code>OPENAI_API_KEY=sk-...</code>, and <code>src/alert.py</code> accepts either <code>KEY=value</code> or a bare key line — with an explicit, immediate failure if the key is missing.<br>
+<em>Lesson:</em> secrets files fail at the worst possible moment; parse them defensively and fail before doing any work.</p>
+<p><strong>Error 7 — default torch wheel pulled CUDA.</strong><br>
+<em>Symptom:</em> <code>pip install torch</code> downloaded gigabytes of NVIDIA wheels (<code>nvidia-nccl-cu12</code> 340 MB) on a CPU-only project.<br>
+<em>Fix:</em> install the CPU wheel from the PyTorch CPU index (<code>.../whl/cpu</code>); same in the Dockerfile.<br>
+<em>Lesson:</em> pin the <em>wheel index</em>, not just the version — reproducibility includes the binary you get.</p>
+<p><strong>Error 8 — notebook that "introduced" outputs instead of interpreting them (commit <code>cb529c5</code>).</strong><br>
+<em>Symptom:</em> the notebook printed every chart with a heading but no reading of what it meant.<br>
+<em>Fix:</em> re-wrote it so each output is interpreted (what this curve says, what this SHAP bar means, what we do about it).<br>
+<em>Lesson:</em> a notebook is a <em>report</em>, not a log. Reviewers read the prose under the chart.</p>
+<h3>Phase 2 — MLOps, governance, deployment</h3>
+<p><strong>Error 9 — MLflow 3 file store deprecation.</strong><br>
+<em>Symptom:</em> <code>./mlruns</code> file store is in maintenance mode in MLflow 3, and the <strong>model registry refuses to work</strong> without a database backend.<br>
+<em>Fix:</em> <code>sqlite:///mlflow.db</code> as backend store; <code>mlflow server --backend-store-uri sqlite:///mlflow.db --port 5000</code>; registry <code>readmission-ann</code> with <code>champion</code> alias. Verified <code>metrics.json</code> byte-identical before/after wiring (constraint P3).<br>
+<em>Lesson:</em> tracking must never fork the source of truth — wire it as a side channel and prove it with a byte comparison.</p>
+<p><strong>Error 10 — OOM installing torch on a t3.micro (1 GB RAM).</strong><br>
+<em>Symptom:</em> pip was killed mid-install on the EC2 box.<br>
+<em>Fix:</em> 2 GB swap file (added to <code>/etc/fstab</code>), documented as step 2 of <code>DEPLOY.md</code> — the build needs it before anything else.<br>
+<em>Lesson:</em> a micro instance is a <em>budget</em> machine; provision the budget (disk, swap, memory) before the workload.</p>
+<p><strong>Error 11 — Windows <code>.pem</code> permission rejection.</strong><br>
+<em>Symptom:</em> <code>Permission denied (publickey)</code> despite a correct key — OpenSSH refuses keys readable by other users (cost about an hour).<br>
+<em>Fix:</em> Windows ACL reduced to exactly one <code>pravin:R</code> line; documented in <code>DEPLOY.md</code> as a callout, since it bites every Windows user once.<br>
+<em>Lesson:</em> read the SSH error fully — "unprotected private key" is a permissions problem, not an auth problem.</p>
+<p><strong>Error 12 — boto3 security-group filter parameter errors.</strong><br>
+<em>Symptom:</em> <code>describe_security_groups</code> calls failed with a parameter validation error when I passed the filter in the wrong shape/name.<br>
+<em>Fix:</em> corrected the filter structure and cross-checked with the instance's own security-group IDs; the final state (ports 22 + 8000 open) is recorded in <code>DEPLOY.md</code> — with the honest note that <code>0.0.0.0/0</code> on 8000 is a portfolio-demo trade-off, not a production posture.<br>
+<em>Lesson:</em> boto3 validates parameters locally and loudly — check the API reference for the exact filter name rather than guessing, and record the <em>resulting</em> configuration in the run book.</p>
+<p><strong>Error 13 — IAM user could not <code>ec2:StartInstances</code>.</strong><br>
+<em>Symptom:</em> <code>StartInstances</code> was denied for the account's <code>admin</code> user.<br>
+<em>Fix:</em> started the instance from the <strong>AWS console</strong>; documented in <code>DEPLOY.md §8</code> with the exact permission to grant (<code>AmazonEC2FullAccess</code>, or just Start/Stop) if CLI control is wanted later.<br>
+<em>Lesson:</em> cloud permissions fail at demo time, not build time. A run book must record <em>who/what started the box</em>.</p>
+<h3>Phase 3 — RAG, baseline, deliverables, live deployment</h3>
+<p><strong>Error 14 — LLM wrote a literal <code>&lt;URL&gt;</code> placeholder instead of real URLs.</strong><br>
+<em>Symptom:</em> the <code>## Sources</code> section came back as <code>- [S1] title — &lt;URL&gt;</code> — the model being "helpfully templated" rather than copying.<br>
+<em>Fix:</em> the prompt now says <em>copy each chunk's document title and url </em><em>verbatim</em><em> from the input; never write a placeholder</em> — plus a rule that unsupported suggestions must say "insufficient guidance" — and a test asserts no <code>&lt;URL&gt;</code>-style placeholder survives.<br>
+<em>Lesson:</em> LLMs fill gaps when inputs look like a form. Make the input a <em>quote-this</em> block and assert the output shape.</p>
+<p><strong>Error 15 — tests broke when the alert format gained sections.</strong><br>
+<em>Symptom:</em> prompt-format tests failed after the alert grew from 4 sections to 5 (<code>## Sources</code> added for RAG citations).<br>
+<em>Fix:</em> updated the regex/assertions to derive from the section list rather than a hard-coded count where possible.<br>
+<em>Lesson:</em> tests that encode <em>presentation</em> need a single source of truth for that presentation (the section list lives in one place — the system prompt).</p>
+<p><strong>Error 16 — README numbers drafted from memory were wrong.</strong><br>
+<em>Symptom:</em> a draft comparison table had figures that didn't match <code>artifacts/metrics.json</code> / <code>baseline.json</code>.<br>
+<em>Fix:</em> regenerated every number from the artefacts (constraint C2) before committing; the table now quotes 0.6754 / 0.6685 / 0.4377 / Δ +0.0069 exactly as stored.<br>
+<em>Lesson:</em> "measured numbers only" is a <em>process</em>: read the JSON, never the run summary in your head. CI enforces it (±0.01 assertion), so a wrong number would now fail the build.</p>
+<p><strong>Error 17 — Docker build died with <code>ENOSPC</code> (No space left on device) on the EC2 box.</strong><br>
+<em>Symptom:</em> the image build filled the 8 GB root volume.<br>
+<em>Root cause:</em> the single <code>requirements.txt</code> installed the whole dev stack — xgboost plus its 340 MB CUDA wheel, MLflow, Evidently, Fairlearn, the notebook stack, pytest — none of which <code>src/api.py</code> imports.<br>
+<em>Fix:</em> new <code>requirements-service.txt</code> with only what the service imports; <code>Dockerfile</code> uses it; <code>requirements.txt</code> unchanged for dev/CI. Image <strong>2.27 GB → 1.95 GB</strong> (commit <code>561e5e5</code>), build completes on the micro.<br>
+<em>Lesson:</em> a container should ship the <em>service's</em> dependencies, not the repository's. Two requirement files = two audiences (runtime vs development).</p>
+<p><strong>Error 18 — DuckDNS updated with the wrong IP (my laptop's).</strong><br>
+<em>Symptom:</em> after setup, the domain pointed at my laptop's IP, not the instance.<br>
+<em>Root cause:</em> the update call was made from my machine with an empty <code>ip=</code> parameter — DuckDNS then stores <strong>the caller's</strong> IP. The box also had no mechanism to re-sync after a stop/start, since a dynamic IP changes between demos.<br>
+<em>Fix:</em> <code>deploy/duckdns.sh</code> runs <strong>on the instance</strong> as a systemd timer, reading the current public IP from IMDSv2 (no external dependency, no token leak) and calling DuckDNS every 5 minutes; the token lives only in <code>/etc/duckdns/config</code> (root-only, format-validated <code>^[0-9a-fA-F-]{36}$</code>), never in git.<br>
+<em>Lesson:</em> "update the DNS" must run where the IP <em>is</em>. IMDSv2 is the right source of truth on EC2, and secrets belong in root-owned config, not scripts.</p>
+<p><strong>Error 19 — <code>duckdns-setup.sh</code> failed under <code>sudo</code> (relative path).</strong><br>
+<em>Symptom:</em> <code>sudo ./deploy/duckdns-setup.sh ...</code> → "No such file or directory".<br>
+<em>Root cause:</em> <code>sudo</code> changed the working directory semantics/relative resolution — the script path didn't resolve from where sudo executed.<br>
+<em>Fix:</em> ran it with the <strong>absolute</strong> path: <code>sudo /home/ec2-user/deploy/duckdns-setup.sh readmission &lt;token&gt;</code>; recorded that exact command in the run book.<br>
+<em>Lesson:</em> anything invoked with <code>sudo</code> in a run book should be written with absolute paths — reproducibility beats brevity.</p>
+<p><strong>Error 20 — <code>docker run</code> started in the wrong working directory (artefacts/chroma missing).</strong><br>
+<em>Symptom:</em> the container came up but <code>/health</code> reported the RAG index missing (or would 503 on <code>/alert</code>).<br>
+<em>Root cause:</em> the run/bind context was relative to the directory I happened to be in, so <code>artifacts/</code> wasn't where the app expected it.<br>
+<em>Fix:</em> run from <code>~/app</code> with the documented <code>docker run -d --name api --restart unless-stopped -p 8000:8000 --env-file .env readmission-api</code>; <code>/health</code> now proves it: <code>"rag": "enabled (discharge_guidelines, top-5)"</code>.<br>
+<em>Lesson:</em> container paths are <em>contracts</em>. The <code>/health</code> field exists precisely so this class of error is visible in one curl.</p>
+<p><strong>Error 21 — RAG tests would have needed an OpenAI key in CI.</strong><br>
+<em>Symptom:</em> embedding chunks during tests would call the API — slow, credentialed, non-reproducible.<br>
+<em>Fix:</em> <code>src/rag.py</code> <strong>always passes vectors explicitly</strong> and never uses Chroma's default embedder; tests inject a deterministic fake embedder, so all 11 RAG tests run offline and CI stays keyless.<br>
+<em>Lesson:</em> design the seam first (inject the embedder), and the offline test follows for free.</p>
+<p><strong>Error 22 — early RAG runs silently missing index → 503 confusion.</strong><br>
+<em>Symptom:</em> <code>/alert</code> failed after deployment before the index was copied/built.<br>
+<em>Fix:</em> fail loudly — <code>require_index()</code> raises a build-instruction error, <code>/alert</code> returns <strong>503 with the exact build command</strong> (<code>python -m src.rag --build</code>), <code>/health</code> exposes index status, and the system prompt has no template fallback.<br>
+<em>Lesson:</em> consistent with the project rule: <em>fail loudly, never silently</em> — an error message must tell the operator the fix, not just the failure.</p>
+<h2>6. Testing and CI — what is actually protected</h2>
+<p><strong>28 tests</strong> (<code>python -m pytest tests -q</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What it guards</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test_api.py</code></td>
+<td>endpoint contract, auth refusal on <code>/alert</code>, 503 when unconfigured, HITL flag present</td>
+</tr>
+<tr>
+<td><code>test_metrics.py</code></td>
+<td><code>metrics.json</code> values, confusion-matrix consistency, README table matches artefacts (±0.01)</td>
+</tr>
+<tr>
+<td><code>test_explain.py</code></td>
+<td>SHAP additivity assertion, driver ordering/sign</td>
+</tr>
+<tr>
+<td><code>test_rag.py</code></td>
+<td>chunk uniqueness/overlap, deterministic fake-embedder retrieval, fail-loud <code>require_index</code>, no credentials needed</td>
+</tr>
+<tr>
+<td><code>test_audit.py</code></td>
+<td>governance artefacts (Fairlearn/Evidently) exist and are well-formed</td>
+</tr>
+<tr>
+<td><code>test_determinism.py</code></td>
+<td>same seed → same artefacts</td>
+</tr>
+</tbody>
+</table>
+<p><strong>CI (<code>.github/workflows/ci.yml</code>)</strong> on every push: retrain from the raw CSV → run audit → run all tests → <strong>assert published metrics within ±0.01</strong> → secret scan. The CI step that defends the ANN-vs-XGB delta means the comparison table can never drift from reality unnoticed.</p>
+<p>Philosophy: <strong>the tests encode the rules I'd otherwise have to remember</strong> — no leakage, no silent fallbacks, no unverified numbers, no credential dependency in tests.</p>
+<h2>7. Live deployment — what was actually executed</h2>
+<p>Full run book: <code>DEPLOY.md</code>. Executed record (<code>DEPLOY.md §8</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Instance</td>
+<td><code>i-0bdba43e891c18402</code> (<code>AI-LLMOPS</code>), t3.micro, Amazon Linux 2023, ap-southeast-2</td>
+</tr>
+<tr>
+<td>Key</td>
+<td><code>AI-LLM.pem</code> — Windows ACL exactly one <code>user:R</code> line</td>
+</tr>
+<tr>
+<td>Setup</td>
+<td><code>dnf install docker</code> → 2 GB swap → build on-box (~10 min) → <code>docker run --restart unless-stopped --env-file .env</code></td>
+</tr>
+<tr>
+<td>Name</td>
+<td><code>readmission.duckdns.org</code> (self-syncing systemd/IMDSv2 timer, TTL 300 s)</td>
+</tr>
+<tr>
+<td>Verified</td>
+<td><code>/health</code> (RAG enabled), <code>/predict</code> (0.961 High, 10 SHAP drivers), authenticated <code>/alert</code> (5 chunks, scores 0.56–0.59, real ahrq.gov URLs, 5 sections with inline <code>[S1]</code> citations), <code>docker logs</code> shows <code>retrieved 5 chunks</code></td>
+</tr>
+<tr>
+<td>Security</td>
+<td><code>/alert</code> gated by <code>X-API-Key</code> (constant-time), <code>.env</code> injected at run time (<code>.dockerignore</code> excludes it), no TLS (documented trade-off — a real deployment terminates TLS at an ALB)</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>bills only while running — <strong>stop after the demo</strong>; start from the <strong>console</strong> (IAM lacks <code>ec2:StartInstances</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Five-minute demo script:</strong> <code>/health</code> → <code>/docs</code> → <code>/predict</code> with a sample payload (risk 0.961, band High, 10 drivers) → authenticated <code>/alert</code> showing <code>[S1]</code> citations and the <code>## Sources</code> URLs → <code>readmission.duckdns.org</code> from a fresh browser → close on the honest metric slide (AUC 0.675, tie with XGBoost, recall 0.35→0.44).</p>
+<h2>8. Interview soundbites</h2>
+<ul>
+<li><strong>"Why is your accuracy lower than the baseline?"</strong> — "Because accuracy on an 11.8% positive rate is meaningless: 'always no' scores 0.8821. I report PR-AUC (0.2319 vs 0.1179 baseline) and recall at a validation-tuned threshold, which I improved from 0.35 to 0.44 without touching the test set until the end."</li>
+<li><strong>"Is your neural net actually better than XGBoost?"</strong> — "No — it's a statistical tie (+0.0069 ROC-AUC, identical recall to four decimals). I ran the baseline on the identical split/preprocessor/threshold and published the tie; I keep the ANN because DeepSHAP gives me verifiable attributions for it."</li>
+<li><strong>"How do you know your explanations are right?"</strong> — "I don't take it on faith: SHAP's additivity check failed on sigmoid output (0.25 vs 0.01 tolerance), so I explain log-odds and assert the identity at runtime — <code>Σ SHAP + baseline = 3.2050 = logit</code>. The assertion is in the notebook, the library and a test."</li>
+<li><strong>"How do you prevent hallucination in the GenAI alert?"</strong> — "The LLM never computes: risk, band and drivers come from my artefacts; it only re-writes them. RAG supplies top-5 AHRQ chunks as <code>[S1]…[S5]</code>, every action must cite one or say 'insufficient guidance', sources are copied verbatim (a test rejects <code>&lt;URL&gt;</code> placeholders), and a missing key/index fails loudly with 503 — no template fallback."</li>
+<li><strong>"Tell me a bug you fixed."</strong> — "The Docker build hit ENOSPC on an 8 GB box because one requirements file shipped the whole dev stack including a 340 MB CUDA wheel. I split a serving-only requirements file — image 2.27 GB → 1.95 GB — and the deeper lesson: ship the service's dependencies, not the repo's."</li>
+<li><strong>"How do you know the deployed thing works?"</strong> — "<code>/health</code> reports model provenance and RAG status; CI retrains from the raw CSV and asserts README metrics ±0.01; 28 tests run keyless; and the DNS name self-heals via an IMDSv2 timer because my first DuckDNS update recorded my <em>laptop's</em> IP."</li>
+<li><strong>"Why EC2 instead of a managed platform?"</strong> — "Because the errors are the point: swap, disk, image size, ACLs, IAM permissions, restart policies — that's the job. Managed platforms hide all of it."</li>
+</ul>
+<h2>9. Reproduce from scratch</h2>
+<pre><code class="language-bash">python scripts/download_data.py        # UCI CSV
+python -m src.train                    # train + evaluate + explain + MLflow, ~1.5 min
+python -m src.baseline                 # XGBoost on identical footing -&gt; baseline.json
+python scripts/fetch_guidelines.py     # AHRQ corpus (committed in guidelines/)
+python -m src.rag --build              # 38 chunks -&gt; artifacts/chroma
+python -m src.alert                    # 3 RAG-grounded alerts (needs OPENAI_API_KEY)
+python -m pytest tests -q              # 28 tests
+python -m uvicorn src.api:app --port 8000
+python docs/build_deliverables.py      # write-up (1 page) + deck (10 slides)
+</code></pre>
+<p>Artefacts that back every number: <code>artifacts/metrics.json</code>, <code>baseline.json</code>, <code>global_shap.json</code>, <code>alerts.json</code>, <code>chroma/</code>, <code>mlflow.db</code>, audit outputs.</p>
+<h2>10. What I'd do next</h2>
+<p>Calibration (reliability diagram) since the output drives a <em>threshold</em> · BM25 + vector hybrid retrieval reranking · expand the corpus beyond 4 documents · fix the security-group nit (restrict 8000 to my IP / put TLS behind a proxy) · a second model card with Fairlearn trends over time · the other two planned capstones (MRI maintenance, insurance claims) using this repo as the template.</p>
+</body></html>

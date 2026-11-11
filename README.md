@@ -18,7 +18,9 @@ a case study against an explicit [Role / Context / Task / Constraints spec](RCTC
 > ([DEPLOY.md](DEPLOY.md)). The DuckDNS name is self-syncing, so the URL never changes.
 
 > **Week-9 deliverables:** [Capstone-Writeup.pdf](Capstone-Writeup.pdf) (1 page) ·
-> [Capstone-Deck.pdf](Capstone-Deck.pdf) (10 slides)
+> [Capstone-Deck.pdf](Capstone-Deck.pdf) (10 slides) ·
+> [Project-Report.pdf](Project-Report.pdf) (7 pages — full build log: every error,
+> its fix, and why each tool was chosen)
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.14-orange)
@@ -344,10 +346,14 @@ Stop the instance between sessions; start it a few minutes before a demo.
 ├── Dockerfile / .dockerignore           service image (API + artefacts)
 ├── .github/workflows/ci.yml             CI: retrain → audit → tests → metric check
 ├── Hospital_Readmission_ANN_SHAP.html   interactive report (open in any browser)
+├── Capstone-Writeup.pdf / Capstone-Deck.pdf / Project-Report.pdf  deliverables
 ├── requirements.txt
 ├── notebooks/
 │   ├── hospital_readmission_ann_shap.ipynb   the full case study, executed
 │   └── hospital_readmission_ann_shap_output.html  notebook rendered linearly
+├── docs/
+│   ├── project-report.md / writeup.md / deck.md   deliverable sources
+│   └── build_deliverables.py           markdown → HTML → PDF (Edge headless)
 ├── scripts/
 │   ├── download_data.py                 fetches the UCI dataset
 │   ├── fetch_guidelines.py              fetches the AHRQ RED corpus into guidelines/
@@ -389,6 +395,7 @@ python -m src.rag --build         # chunk guidelines/ -> Chroma index (needs OPE
 python -m src.alert               # RAG-grounded discharge alerts (needs OPENAI_API_KEY)
 python -m pytest tests -q         # 28 tests
 python scripts/build_report.py    # rebuilds the interactive HTML report
+python docs/build_deliverables.py # rebuild the PDFs (writeup, deck, report)
 
 uvicorn src.api:app --port 8000   # serve the API (docs at /docs)
 ```
