@@ -15,8 +15,11 @@ WORKDIR /app
 RUN pip install --upgrade pip \
     && pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Serving-only dependency set: the full requirements.txt drags in xgboost (+
+# a 340 MB CUDA wheel), MLflow, Evidently and the notebook stack that the API
+# never imports — too much for an 8 GB micro's disk. See the file's header.
+COPY requirements-service.txt .
+RUN pip install -r requirements-service.txt
 
 # artefacts (model, preprocessor, SHAP background, metrics) and the cleaned
 # cohort the API serves are committed on purpose — the image needs no training.

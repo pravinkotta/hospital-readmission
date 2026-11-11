@@ -306,13 +306,18 @@ docker build -t readmission-api .
 docker run --rm -p 8000:8000 --env-file .env readmission-api
 ```
 
-CPU-only torch wheel — measured image size **3.3 GB** (the full dependency
-stack: torch, MLflow, Evidently, SHAP, Chroma), `.env` injected at run time —
+The image installs **`requirements-service.txt`** — the serving-only subset
+(torch CPU wheel, SHAP, FastAPI, Chroma, OpenAI client). The full
+`requirements.txt` also carries xgboost (with a **340 MB CUDA wheel**),
+MLflow, Evidently, Fairlearn and the notebook stack that the API never
+imports — on an 8 GB t3.micro that difference was *No space left on device*
+during the build, so the split exists for a reason. **Measured image size
+1.95 GB** (it was 2.27 GB before the split). `.env` injected at run time —
 `.dockerignore` keeps the secret out of every image layer. The image ships the
 committed artefacts **including the Chroma RAG index** (`artifacts/chroma`) and
 the `guidelines/` source corpus, so `/alert` is grounded out of the box.
 Verified end-to-end: `/health`, `/predict` and a real authenticated `/alert`
-call all answer from inside the container.
+call all answer from inside the container — locally and on EC2.
 
 ## Deploy — EC2 (live)
 

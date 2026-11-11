@@ -1,0 +1,33 @@
+# Serving image dependencies — what the FastAPI container actually imports.
+#
+# The full requirements.txt also carries training/dev/CI extras that the API
+# never touches (xgboost + its ~340 MB CUDA wheel, MLflow, Evidently,
+# Fairlearn, the notebook execution stack, pytest). On an 8 GB t3.micro those
+# megabytes are the difference between building and "No space left on device",
+# so the Dockerfile installs THIS file instead.
+#
+# Verified: src/api.py -> alert.py -> rag.py imports nothing outside this list
+# (mlflow/evidently/fairlearn/xgboost are imported lazily inside
+# src/train.py:main() and src/audit.py, which the container never runs).
+
+# Core pipeline (same pins as requirements.txt)
+torch>=2.2,<3.0
+scikit-learn>=1.5
+pandas>=2.0
+numpy>=1.26,<3.0
+joblib>=1.4
+
+# Explainability — /predict with explain:true and /alert drivers need SHAP
+shap>=0.46
+matplotlib>=3.8
+
+# GenAI alert stage (requires OPENAI_API_KEY)
+openai>=1.40
+
+# Serving
+fastapi>=0.115
+uvicorn>=0.30
+
+# RAG: Chroma persistent index (query only — vectors are passed explicitly,
+# so the default ONNX embedder is never downloaded at runtime)
+chromadb>=0.5
