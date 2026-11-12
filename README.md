@@ -20,7 +20,8 @@ a case study against an explicit [Role / Context / Task / Constraints spec](RCTC
 > **Week-9 deliverables:** [Capstone-Writeup.pdf](Capstone-Writeup.pdf) (1 page) ·
 > [Capstone-Deck.pdf](Capstone-Deck.pdf) (10 slides) ·
 > [Project-Report.pdf](Project-Report.pdf) (7 pages — full build log: every error,
-> its fix, and why each tool was chosen)
+> its fix, and why each tool was chosen) ·
+> [AI-engineering checklist audit](docs/ai-engineering-audit.md) (RAG/agent/MCP gap map)
 
 ![Python 3.10](https://img.shields.io/badge/python-3.10-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.14-orange)
@@ -352,7 +353,7 @@ Stop the instance between sessions; start it a few minutes before a demo.
 │   ├── hospital_readmission_ann_shap.ipynb   the full case study, executed
 │   └── hospital_readmission_ann_shap_output.html  notebook rendered linearly
 ├── docs/
-│   ├── project-report.md / writeup.md / deck.md   deliverable sources
+│   ├── project-report.md / writeup.md / deck.md / ai-engineering-audit.md  deliverable sources
 │   └── build_deliverables.py           markdown → HTML → PDF (Edge headless)
 ├── scripts/
 │   ├── download_data.py                 fetches the UCI dataset
